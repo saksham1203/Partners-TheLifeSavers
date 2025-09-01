@@ -11,6 +11,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy/PrivacyPolicy";
 const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
 const Landing = lazy(()=> import("./pages/Landing/Landing"))
 const Login = lazy(() => import("./pages/Login/Login"));
+const Register = lazy(() => import("./pages/Register/Register"));
 const ForgotPassword = lazy(() => import("./Components/ForgotPassword/ForgotPassword"));
 const AboutUs = lazy(() => import("./pages/AboutUs/AboutUs"));
 const TermsAndConditions = lazy(() =>
@@ -36,6 +37,7 @@ const queryClient = new QueryClient({
 
 const PATHS = {
   ROOT: "/",
+  REGISTER: "/register",
   LOGIN: "/login",
   FORGOT_PASSWORD: "/forgot-password",
   DASHBOARD: "/dashboard",
@@ -63,6 +65,16 @@ const App = () => {
             <PublicRoute>
               <Suspense fallback={<div>Loading...</div>}>
                 <Landing />
+              </Suspense>
+            </PublicRoute>
+          ),
+        },
+        {
+          path: PATHS.REGISTER,
+          element: (
+            <PublicRoute>
+              <Suspense fallback={<div>Loading...</div>}>
+                <Register />
               </Suspense>
             </PublicRoute>
           ),

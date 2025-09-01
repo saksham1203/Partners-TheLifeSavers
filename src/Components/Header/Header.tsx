@@ -12,6 +12,7 @@ import {
   FaSearch,
   FaEnvelope,
   FaTint,
+  FaUserPlus,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../Context/AuthContext";
@@ -291,6 +292,11 @@ const Header: React.FC = () => {
                 to: "/login",
                 icon: <FaSignInAlt className="mr-2 text-xl" />,
                 label: "Login",
+              },
+              {
+                to: "/register",
+                icon: <FaUserPlus className="mr-2 text-xl" />,
+                label: "Register",
               },
               {
                 to: "/learn-about-donation",

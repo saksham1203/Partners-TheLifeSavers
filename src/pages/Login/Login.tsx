@@ -232,9 +232,14 @@ const Login: React.FC = () => {
               </form>
               <div className="flex items-center mt-4 w-full">
                 <hr className="flex-1 border-gray-300" />
-                <span className="mx-4 text-sm text-gray-600 text-center">
-                  Need access? Please contact the Life Savers Partner Support
-                  team.
+                <span className="mx-4 text-sm text-gray-600">
+                  Don't have an account?{" "}
+                  <Link
+                    to="/register"
+                    className="font-medium text-red-600 hover:text-red-500"
+                  >
+                    Sign up
+                  </Link>
                 </span>
                 <hr className="flex-1 border-gray-300" />
               </div>
