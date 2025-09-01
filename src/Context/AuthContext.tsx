@@ -4,10 +4,10 @@ import React, {
   useState,
   useEffect,
   ReactNode,
-} from 'react';
-import { Preferences } from '@capacitor/preferences';
-import { App } from '@capacitor/app';
-import type { PluginListenerHandle } from '@capacitor/core';
+} from "react";
+import { Preferences } from "@capacitor/preferences";
+import { App } from "@capacitor/app";
+import type { PluginListenerHandle } from "@capacitor/core";
 
 interface User {
   userId: any;
@@ -57,7 +57,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
@@ -67,8 +67,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userReview, setUserReview] = useState<UserReview | false | null>(null);
 
   const loadStoredAuth = async () => {
-    const { value: token } = await Preferences.get({ key: 'token' });
-    const { value: tokenExpiration } = await Preferences.get({ key: 'tokenExpiration' });
+    const { value: token } = await Preferences.get({ key: "token" });
+    const { value: tokenExpiration } = await Preferences.get({
+      key: "tokenExpiration",
+    });
 
     if (token && tokenExpiration) {
       const now = new Date();
@@ -76,11 +78,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (now < expirationDate) {
         setIsAuthenticated(true);
-        const { value: storedUser } = await Preferences.get({ key: 'user' });
-        const { value: storedUserReview } = await Preferences.get({ key: 'userReview' });
+        const { value: storedUser } = await Preferences.get({ key: "user" });
+        const { value: storedUserReview } = await Preferences.get({
+          key: "userReview",
+        });
 
         if (storedUser) setUser(JSON.parse(storedUser));
-        if (storedUserReview && storedUserReview !== 'false') {
+        if (storedUserReview && storedUserReview !== "false") {
           setUserReview(JSON.parse(storedUserReview));
         } else {
           setUserReview(false);
@@ -103,12 +107,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const expirationDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // ✅ 1 month
     const expirationString = expirationDate.toISOString();
 
-    await Preferences.set({ key: 'token', value: token });
-    await Preferences.set({ key: 'tokenExpiration', value: expirationString });
-    await Preferences.set({ key: 'user', value: JSON.stringify(user) });
+    await Preferences.set({ key: "token", value: token });
+    await Preferences.set({ key: "tokenExpiration", value: expirationString });
+    await Preferences.set({ key: "user", value: JSON.stringify(user) });
     await Preferences.set({
-      key: 'userReview',
-      value: userReview ? JSON.stringify(userReview) : 'false',
+      key: "userReview",
+      value: userReview ? JSON.stringify(userReview) : "false",
     });
   };
 
@@ -117,10 +121,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setUserReview(null);
 
-    await Preferences.remove({ key: 'token' });
-    await Preferences.remove({ key: 'tokenExpiration' });
-    await Preferences.remove({ key: 'user' });
-    await Preferences.remove({ key: 'userReview' });
+    // Clear Capacitor Preferences
+    await Preferences.remove({ key: "token" });
+    await Preferences.remove({ key: "tokenExpiration" });
+    await Preferences.remove({ key: "user" });
+    await Preferences.remove({ key: "userReview" });
+
+    // ✅ Also clear from browser storage (important for web)
+    localStorage.removeItem("token");
+    localStorage.removeItem("tokenExpiration");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userReview");
+
+    // (Optional) clear sessionStorage too
+    sessionStorage.clear();
   };
 
   const setAuthenticated = (value: boolean) => {
@@ -133,16 +147,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadStoredAuth();
 
     const setupListener = async () => {
-      listenerHandle = await App.addListener('appStateChange', async ({ isActive }) => {
-        if (isActive) {
-          const { value: token } = await Preferences.get({ key: 'token' });
-          const { value: tokenExpiration } = await Preferences.get({ key: 'tokenExpiration' });
+      listenerHandle = await App.addListener(
+        "appStateChange",
+        async ({ isActive }) => {
+          if (isActive) {
+            const { value: token } = await Preferences.get({ key: "token" });
+            const { value: tokenExpiration } = await Preferences.get({
+              key: "tokenExpiration",
+            });
 
-          if (!token || (tokenExpiration && new Date() > new Date(tokenExpiration))) {
-            logout();
+            if (
+              !token ||
+              (tokenExpiration && new Date() > new Date(tokenExpiration))
+            ) {
+              logout();
+            }
           }
         }
-      });
+      );
     };
 
     setupListener();
