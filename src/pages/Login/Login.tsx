@@ -70,7 +70,10 @@ const Login: React.FC = () => {
         <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full overflow-hidden relative animate-fade-in">
           {/* Header Section */}
           <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-400 text-white text-center py-8 px-6">
-            <h1 className="text-4xl font-extrabold mb-2">Lab Login</h1>
+            <h1 className="text-4xl font-extrabold mb-2">Partner Login</h1>
+            <p className="text-sm text-red-100">
+              Access your Life Savers Partner Dashboard
+            </p>
           </div>
 
           {/* Content Section */}
@@ -92,7 +95,7 @@ const Login: React.FC = () => {
               <h2 className="text-3xl font-bold text-gray-800 mb-4 text-center">
                 Welcome,{" "}
                 <span className="text-3xl text-red-600 font-bold">
-                  Lab Partner
+                  Life Savers Partner
                 </span>
               </h2>
 
@@ -230,7 +233,8 @@ const Login: React.FC = () => {
               <div className="flex items-center mt-4 w-full">
                 <hr className="flex-1 border-gray-300" />
                 <span className="mx-4 text-sm text-gray-600 text-center">
-                  Need access? Please contact your Life Savers administrator.
+                  Need access? Please contact the Life Savers Partner Support
+                  team.
                 </span>
                 <hr className="flex-1 border-gray-300" />
               </div>
