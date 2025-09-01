@@ -13,6 +13,7 @@ import {
 } from "react-icons/fa";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import Confetti from "react-confetti";
+import { motion } from "framer-motion";
 
 // ------------------- COMMISSION SLABS -------------------
 interface Milestone {
@@ -24,60 +25,32 @@ interface Milestone {
 const MILESTONES: Milestone[] = [
   { min: 0, max: 5, rate: 50 },
   { min: 6, max: 10, rate: 75 },
-  { min: 11, max: 20, rate: 100 },
+  { min: 11, max: Infinity, rate: 100 }, // ✅ 11+
 ];
 
-function calculateCommission(totalPatients: number): number {
+const calculateCommission = (totalPatients: number): number => {
   if (totalPatients <= 0) return 0;
 
-  // Find the highest milestone the partner has reached
   const milestone = MILESTONES.find(
     (m) => totalPatients >= m.min && totalPatients <= m.max
   );
 
   if (milestone) {
-    // Apply this milestone rate to ALL patients
     return totalPatients * milestone.rate;
   }
 
-  // If beyond highest milestone, use the last milestone rate
-  const highest = MILESTONES[MILESTONES.length - 1];
-  return totalPatients * highest.rate;
-}
+  return 0;
+};
 
-function currentMilestone(totalPatients: number): Milestone | null {
-  return (
-    MILESTONES.find((m) => totalPatients >= m.min && totalPatients <= m.max) ??
-    null
-  );
-}
+const currentMilestone = (totalPatients: number): Milestone | null =>
+  MILESTONES.find((m) => totalPatients >= m.min && totalPatients <= m.max) ??
+  null;
 
-function nextMilestone(totalPatients: number): Milestone | null {
-  return MILESTONES.find((m) => totalPatients < m.min) ?? null;
-}
+const nextMilestone = (totalPatients: number): Milestone | null =>
+  MILESTONES.find((m) => totalPatients < m.min) ?? null;
 
 // ------------------- Countdown Hook -------------------
-function useCountdown(endDate: Date, onEnd: () => void) {
-  const [timeLeft, setTimeLeft] = useState(() =>
-    calcTimeLeft(endDate.getTime())
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTime = calcTimeLeft(endDate.getTime());
-      setTimeLeft(newTime);
-
-      if (newTime.ended) {
-        onEnd(); // reset timer when ended
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [endDate, onEnd]);
-
-  return timeLeft;
-}
-
-function calcTimeLeft(endTime: number) {
+const calcTimeLeft = (endTime: number) => {
   const now = new Date().getTime();
   const diff = endTime - now;
 
@@ -92,7 +65,27 @@ function calcTimeLeft(endTime: number) {
     seconds: Math.floor((diff / 1000) % 60),
     ended: false,
   };
-}
+};
+
+const useCountdown = (endDate: Date, onEnd: () => void) => {
+  const [timeLeft, setTimeLeft] = useState(() =>
+    calcTimeLeft(endDate.getTime())
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newTime = calcTimeLeft(endDate.getTime());
+      setTimeLeft(newTime);
+
+      if (newTime.ended) {
+        onEnd();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [endDate, onEnd]);
+
+  return timeLeft;
+};
 
 // ------------------- CountdownTimer -------------------
 const CountdownTimer: React.FC<{
@@ -106,7 +99,6 @@ const CountdownTimer: React.FC<{
 
   return (
     <div className="flex flex-col items-center text-center">
-      {/* Header */}
       <div
         className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 text-white 
                       px-3 py-0.5 rounded-t-md text-[9px] sm:text-[11px] font-bold 
@@ -115,7 +107,6 @@ const CountdownTimer: React.FC<{
         Referral Offer Ends In
       </div>
 
-      {/* Timer */}
       <div
         className="flex items-center justify-center space-x-1 sm:space-x-1.5 bg-white 
                       rounded-b-md shadow-md px-2.5 sm:px-3 py-1 border-t-2 border-red-500"
@@ -146,7 +137,6 @@ const CountdownTimer: React.FC<{
         ))}
       </div>
 
-      {/* Show cycle dates */}
       <p className="text-[10px] sm:text-xs text-gray-700 font-semibold mt-1">
         Cycle:{" "}
         <span className="text-red-600 font-bold">
@@ -183,40 +173,40 @@ const MilestoneStepper: React.FC<{ patients: number }> = ({ patients }) => {
   const idx = MILESTONES.findIndex(
     (m) => patients >= m.min && patients <= m.max
   );
-
   return (
     <div className="w-full flex items-center">
       {MILESTONES.map((m, i) => {
         const reached = i <= idx;
         const isCurrent = i === idx;
-
         return (
           <React.Fragment key={i}>
-            <div className="flex flex-col items-center text-center min-w-0 flex-1">
+            <motion.div
+              animate={{ scale: isCurrent ? [1, 1.1, 1] : 1 }}
+              transition={{ repeat: isCurrent ? Infinity : 0, duration: 1 }}
+              className="flex flex-col items-center text-center min-w-0 flex-1"
+            >
               <div
-                className={`flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-md transition-all text-xs font-bold
+                className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-md text-sm font-bold
                   ${
                     reached
                       ? "bg-gradient-to-br from-red-600 to-orange-500 text-white border-red-600"
                       : "bg-gray-100 text-gray-400 border-gray-300"
-                  }
-                  ${isCurrent ? "ring-2 ring-red-200 scale-105" : ""}`}
+                  }`}
               >
                 ₹{m.rate}
               </div>
               <span
-                className={`mt-1 text-[11px] sm:text-xs font-semibold ${
+                className={`mt-1 text-xs font-semibold ${
                   reached ? "text-red-700" : "text-gray-500"
                 }`}
               >
-                {m.min}–{m.max}
+                {m.max === Infinity ? `${m.min}+` : `${m.min}–${m.max}`}
               </span>
               <span className="text-[10px] text-gray-400">Patients</span>
-            </div>
-
+            </motion.div>
             {i < MILESTONES.length - 1 && (
               <div
-                className={`h-1 flex-1 mx-1 sm:mx-2 rounded-full self-center ${
+                className={`h-1 flex-1 mx-2 rounded-full ${
                   i < idx
                     ? "bg-gradient-to-r from-red-600 to-orange-500"
                     : "bg-gray-300"
@@ -243,40 +233,53 @@ const PartnerDashboard: React.FC = () => {
     height: window.innerHeight,
   });
 
+  const [lastMilestone, setLastMilestone] = useState<Milestone | null>(null);
+
   const promoCode = "LSAVE123";
   const commission = calculateCommission(patients);
 
   const milestone = useMemo(() => currentMilestone(patients), [patients]);
   const next = useMemo(() => nextMilestone(patients), [patients]);
 
-  // 🔄 15-day recurring offer cycle
-  const [offerStart, setOfferStart] = useState<Date>(new Date());
-  const [offerEnd, setOfferEnd] = useState<Date>(
-    new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000)
+  // 🔄 Fixed offer cycle starting Sept 1, 2025 at 12 AM
+  const CYCLE_START = new Date("2025-09-01T00:00:00");
+  const CYCLE_END = new Date(
+    CYCLE_START.getTime() + 15 * 24 * 60 * 60 * 1000
   );
 
+  const [offerStart, setOfferStart] = useState<Date>(CYCLE_START);
+  const [offerEnd, setOfferEnd] = useState<Date>(CYCLE_END);
+
   const resetOffer = () => {
-    const now = new Date();
-    setOfferStart(now);
-    setOfferEnd(new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000));
+    const nextStart = new Date(offerEnd);
+    const nextEnd = new Date(nextStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+    setOfferStart(nextStart);
+    setOfferEnd(nextEnd);
   };
 
-  // Window resize handler for confetti
+  // ✅ Responsive window size
   useEffect(() => {
-    const handleResize = () =>
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const updateSize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener("resize", updateSize);
+    updateSize(); // call once immediately
+    return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // 🎉 Confetti when milestone completes
+  // 🎉 Confetti only on new milestone
   useEffect(() => {
-    if (milestone && milestone.min > 0) {
+    if (milestone && milestone.min > 0 && milestone !== lastMilestone) {
       setShowConfetti(true);
+      setLastMilestone(milestone);
+
       const timer = setTimeout(() => setShowConfetti(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [milestone?.rate]);
+  }, [milestone, lastMilestone]);
 
   return (
     <div
@@ -288,7 +291,8 @@ const PartnerDashboard: React.FC = () => {
           width={windowSize.width}
           height={windowSize.height}
           recycle={false}
-          numberOfPieces={500}
+          numberOfPieces={600}
+          gravity={0.3}
         />
       )}
 
@@ -318,9 +322,7 @@ const PartnerDashboard: React.FC = () => {
           {/* Promo Code */}
           <SectionCard
             title={
-              <span className="flex items-center gap-2">
-                🎟️ Your Promo Code
-              </span>
+              <span className="flex items-center gap-2">🎟️ Your Promo Code</span>
             }
             right={
               <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
@@ -473,16 +475,18 @@ const PartnerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 📌 Floating Countdown Timer (center bottom) */}
-      <div className="fixed bottom-14 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl px-4 py-3 border border-red-200">
-          <CountdownTimer
-            endDate={offerEnd}
-            startDate={offerStart}
-            onEnd={resetOffer}
-          />
+      {/* 📌 Floating Countdown Timer */}
+      {offerStart && offerEnd && (
+        <div className="fixed bottom-14 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl px-4 py-3 border border-red-200">
+            <CountdownTimer
+              endDate={offerEnd}
+              startDate={offerStart}
+              onEnd={resetOffer}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 📌 Terms & Conditions Modal */}
       {isTncOpen && (
@@ -491,7 +495,6 @@ const PartnerDashboard: React.FC = () => {
             ref={fhcDialogRef}
             className="bg-gradient-to-br from-white to-red-50 rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col relative border border-red-100"
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-gradient-to-br from-white to-red-50 z-10 rounded-t-2xl">
               <h2 className="text-lg sm:text-xl font-extrabold text-red-700 tracking-tight flex items-center gap-2">
                 <FaFileContract className="text-red-600" /> Referral Offer — T&C
@@ -504,7 +507,6 @@ const PartnerDashboard: React.FC = () => {
               </button>
             </div>
 
-            {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-3 text-sm text-gray-700">
               <ul className="space-y-2 list-disc pl-5">
                 <li>Offer runs in recurring 15-day cycles.</li>
@@ -522,7 +524,6 @@ const PartnerDashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* Footer */}
             <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4 bg-gradient-to-br from-white to-red-50 rounded-b-2xl">
               <button
                 onClick={() => setIsTncOpen(false)}
