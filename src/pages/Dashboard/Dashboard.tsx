@@ -238,12 +238,14 @@ const PartnerDashboard: React.FC = () => {
   const milestone = useMemo(() => currentMilestone(patients), [patients]);
   const next = useMemo(() => nextMilestone(patients), [patients]);
 
-  // 🔄 Fixed offer cycle starting Sept 1, 2025 at 12 AM
-  const CYCLE_START = new Date("2025-09-01T00:00:00");
-  const CYCLE_END = new Date(CYCLE_START.getTime() + 15 * 24 * 60 * 60 * 1000);
+  // Default fallback cycle start (if createdAt isn't available)
+  const DEFAULT_CYCLE_START = new Date("2025-09-01T00:00:00");
 
-  const [offerStart, setOfferStart] = useState<Date>(CYCLE_START);
-  const [offerEnd, setOfferEnd] = useState<Date>(CYCLE_END);
+  // Offer start/end state (initialized to default; may be overwritten by createdAt)
+  const [offerStart, setOfferStart] = useState<Date>(DEFAULT_CYCLE_START);
+  const [offerEnd, setOfferEnd] = useState<Date>(
+    new Date(DEFAULT_CYCLE_START.getTime() + 15 * 24 * 60 * 60 * 1000)
+  );
 
   const resetOffer = () => {
     const nextStart = new Date(offerEnd);
@@ -253,11 +255,9 @@ const PartnerDashboard: React.FC = () => {
   };
 
   // ---------- Milestone confetti (index-based) ----------
-  // helper to get milestone index for a given patient count
   const getMilestoneIndex = (count: number) =>
     MILESTONES.findIndex((m) => count >= m.min && count <= m.max);
 
-  // initialize lastMilestoneIndex from current patients so we don't trigger confetti on mount
   const initialIndex = getMilestoneIndex(patients);
   const [, setLastMilestoneIndex] = useState<number>(
     initialIndex >= 0 ? initialIndex : -1
@@ -270,74 +270,93 @@ const PartnerDashboard: React.FC = () => {
   useEffect(() => {
     const idx = getMilestoneIndex(patients);
 
-    // only trigger when crossing into a higher milestone index
     if (idx > lastMilestoneIndexRef.current) {
-      // show confetti
       setShowConfetti(true);
-
-      // update both state + ref
       setLastMilestoneIndex(idx);
       lastMilestoneIndexRef.current = idx;
 
-      // reset any previous timer
       if (confettiTimerRef.current) {
         window.clearTimeout(confettiTimerRef.current);
         confettiTimerRef.current = null;
       }
-
-      // stop confetti after 5s
       confettiTimerRef.current = window.setTimeout(() => {
         setShowConfetti(false);
         confettiTimerRef.current = null;
       }, 5000);
     }
-    // cleanup on unmount
+
     return () => {
       if (confettiTimerRef.current) {
         window.clearTimeout(confettiTimerRef.current);
         confettiTimerRef.current = null;
       }
     };
-    // only run this effect when patients changes
   }, [patients]);
 
   // ---------------------------------------
 
-  // ✅ Load promo code from Capacitor Preferences (works in browser & Capacitor apps)
+  // ✅ Load promo code and createdAt from Capacitor Preferences (works in browser & Capacitor apps)
   useEffect(() => {
     let mounted = true;
-    const fetchPromoCode = async () => {
+    const fetchFromPrefs = async () => {
       try {
-        const { value } = await Preferences.get({ key: "promocode" });
+        // first prefer explicit promocode key
+        const { value: promoValue } = await Preferences.get({ key: "promocode" });
         if (!mounted) return;
-        if (value && value.length > 0) {
-          setPromoCode(value);
-          return;
+        if (promoValue && promoValue.length > 0) {
+          setPromoCode(promoValue);
         }
 
-        // fallback: try reading promo from stored user object (if you store it)
+        // then try the user object (often stored on login)
         const { value: userJson } = await Preferences.get({ key: "user" });
+        if (!mounted) return;
         if (userJson) {
           try {
             const user = JSON.parse(userJson);
-            if (user?.promocode || user?.referralCode) {
-              setPromoCode(user.promocode ?? user.referralCode);
-              return;
+
+            // promocode fallback from user object
+            if (!promoValue || promoValue.length === 0) {
+              if (user?.promocode) setPromoCode(user.promocode);
+              else if (user?.referralCode) setPromoCode(user.referralCode);
+            }
+
+            // If createdAt exists, use its date only (set hours to midnight local)
+            if (user?.createdAt) {
+              const parsed = new Date(user.createdAt);
+              if (!isNaN(parsed.getTime())) {
+                // make a date-only (local midnight) from createdAt
+                const dateOnly = new Date(parsed);
+                dateOnly.setHours(0, 0, 0, 0);
+
+                // set offer start/end based on this date-only value
+                const start = dateOnly;
+                const end = new Date(start.getTime() + 15 * 24 * 60 * 60 * 1000);
+
+                setOfferStart(start);
+                setOfferEnd(end);
+              }
             }
           } catch (e) {
-            // ignore JSON parse errors
+            // ignore parse errors
+            console.warn("Failed to parse stored user JSON", e);
           }
         }
 
-        // final fallback
-        setPromoCode("LSAVE123");
+        // final fallback if nothing was found
+        if ((!promoValue || promoValue.length === 0) && !userJson) {
+          setPromoCode("LSAVE123");
+        }
       } catch (err) {
-        console.error("Failed to load promo code:", err);
-        if (mounted) setPromoCode("LSAVE123");
+        console.error("Failed to load preferences:", err);
+        if (mounted) {
+          setPromoCode("LSAVE123");
+          setOfferStart(DEFAULT_CYCLE_START);
+          setOfferEnd(new Date(DEFAULT_CYCLE_START.getTime() + 15 * 24 * 60 * 60 * 1000));
+        }
       }
     };
 
-    fetchPromoCode();
+    fetchFromPrefs();
     return () => {
       mounted = false;
     };
