@@ -17,6 +17,7 @@ export interface RegisterFormInput {
   pincode: string;
   partnerType: string;
   otherPartnerType?: string;
+  shopName?: string; // <- added
   termsAccepted: boolean;
 }
 
@@ -30,6 +31,8 @@ interface NewUser {
   address: string;
   pincode: string;
   partnerType: string;
+  otherPartnerType?: string;
+  shopName?: string; // <- added
   termsAccepted: boolean;
 }
 

@@ -444,6 +444,33 @@ const Register: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Shop Name */}
+<div className="sm:col-span-2">
+  <label className="block text-sm font-medium text-gray-700">
+    Shop Name
+  </label>
+  <input
+    type="text"
+    placeholder="Enter shop name"
+    {...register("shopName", {
+      required: "Shop name is required",
+      maxLength: {
+        value: 100,
+        message: "Shop name cannot exceed 100 characters",
+      },
+    })}
+    className={`mt-1 block w-full px-3 py-2 border ${
+      errors.shopName ? "border-red-500" : "border-gray-300"
+    } rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm`}
+  />
+  {errors.shopName && (
+    <p className="text-red-500 text-sm mt-1">
+      {errors.shopName.message}
+    </p>
+  )}
+</div>
+
+
                   {/* Address */}
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700">
@@ -556,6 +583,11 @@ const Register: React.FC = () => {
                           {formValues.pincode}
                         </span>
                       </div>
+                      <div className="flex justify-between border-b pb-2">
+  <span className="font-medium text-gray-600">Shop Name:</span>
+  <span className="text-gray-800">{formValues.shopName}</span>
+</div>
+
                       <div className="flex justify-between border-b pb-2">
                         <span className="font-medium text-gray-600">
                           Address:
