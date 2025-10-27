@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
-import { Preferences } from "@capacitor/preferences";
+// src/pages/PartnerDashboard.tsx
+import React, { useRef } from "react";
 import {
   FaCheckCircle,
   FaGift,
@@ -16,84 +16,16 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import Confetti from "react-confetti";
 import { motion } from "framer-motion";
 
-// ------------------- COMMISSION SLABS -------------------
-interface Milestone {
-  min: number;
-  max: number;
-  rate: number;
-}
+// moved logic to service/hooks but keeping UI the same
+import { MILESTONES } from "../../services/partnerService";
+import { usePartnerDashboard, useCountdown } from "../../hooks/usePartnerDashboard";
 
-const MILESTONES: Milestone[] = [
-  { min: 0, max: 5, rate: 50 },
-  { min: 6, max: 10, rate: 75 },
-  { min: 11, max: Infinity, rate: 100 },
-];
-
-const calculateCommission = (totalPatients: number): number => {
-  if (totalPatients <= 0) return 0;
-
-  const milestone = MILESTONES.find(
-    (m) => totalPatients >= m.min && totalPatients <= m.max
-  );
-
-  if (milestone) {
-    return totalPatients * milestone.rate;
-  }
-
-  return 0;
-};
-
-const currentMilestone = (totalPatients: number): Milestone | null =>
-  MILESTONES.find((m) => totalPatients >= m.min && totalPatients <= m.max) ??
-  null;
-
-const nextMilestone = (totalPatients: number): Milestone | null =>
-  MILESTONES.find((m) => totalPatients < m.min) ?? null;
-
-// ------------------- Countdown Hook -------------------
-const calcTimeLeft = (endTime: number) => {
-  const now = new Date().getTime();
-  const diff = endTime - now;
-
-  if (diff <= 0) {
-    return { days: 0, hours: 0, minutes: 0, seconds: 0, ended: true };
-  }
-
-  return {
-    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((diff / (1000 * 60)) % 60),
-    seconds: Math.floor((diff / 1000) % 60),
-    ended: false,
-  };
-};
-
-const useCountdown = (endDate: Date, onEnd: () => void) => {
-  const [timeLeft, setTimeLeft] = useState(() =>
-    calcTimeLeft(endDate.getTime())
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTime = calcTimeLeft(endDate.getTime());
-      setTimeLeft(newTime);
-
-      if (newTime.ended) {
-        onEnd();
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [endDate, onEnd]);
-
-  return timeLeft;
-};
-
-// ------------------- CountdownTimer -------------------
+// ------------------- CountdownTimer (same markup) -------------------
 const CountdownTimer: React.FC<{
   endDate: Date;
   startDate: Date;
   onEnd: () => void;
-}> = ({ endDate, startDate, onEnd }) => {
+}> = React.memo(({ endDate, startDate, onEnd }) => {
   const timeLeft = useCountdown(endDate, onEnd);
 
   if (timeLeft.ended) return null;
@@ -139,21 +71,26 @@ const CountdownTimer: React.FC<{
       </div>
 
       <p className="text-[10px] sm:text-xs text-gray-700 font-semibold mt-1">
-        Cycle: {" "}
-        <span className="text-red-600 font-bold">{startDate.toDateString()}</span>{" "}
-        → {" "}
-        <span className="text-green-700 font-bold">{endDate.toDateString()}</span>
+        Cycle:{" "}
+        <span className="text-red-600 font-bold">
+          {startDate.toDateString()}
+        </span>{" "}
+        →{" "}
+        <span className="text-green-700 font-bold">
+          {endDate.toDateString()}
+        </span>
       </p>
     </div>
   );
-};
+});
+CountdownTimer.displayName = "CountdownTimer";
 
-// ------------------- UI HELPERS -------------------
+// ------------------- UI HELPERS (same JSX/classes) -------------------
 const SectionCard: React.FC<{
   title: React.ReactNode;
   right?: React.ReactNode;
   children?: React.ReactNode;
-}> = ({ title, right, children }) => (
+}> = React.memo(({ title, right, children }) => (
   <div className="rounded-2xl border border-red-100 bg-white/90 backdrop-blur shadow-md hover:shadow-lg transition">
     <div className="flex items-center justify-between px-4 sm:px-6 py-3 bg-gradient-to-r from-red-50/90 to-orange-50/90 rounded-t-2xl">
       <h3 className="text-sm sm:text-base font-bold text-red-700 flex items-center gap-2">
@@ -163,228 +100,87 @@ const SectionCard: React.FC<{
     </div>
     <div className="p-4 sm:p-6">{children}</div>
   </div>
-);
+));
+SectionCard.displayName = "SectionCard";
 
-// ------------------- Stepper -------------------
-const MilestoneStepper: React.FC<{ patients: number }> = ({ patients }) => {
-  const idx = MILESTONES.findIndex(
-    (m) => patients >= m.min && patients <= m.max
-  );
-  return (
-    <div className="w-full flex items-center">
-      {MILESTONES.map((m, i) => {
-        const reached = i <= idx;
-        const isCurrent = i === idx;
-        return (
-          <React.Fragment key={i}>
-            <motion.div
-              animate={{ scale: isCurrent ? [1, 1.1, 1] : 1 }}
-              transition={{ repeat: isCurrent ? Infinity : 0, duration: 1 }}
-              className="flex flex-col items-center text-center min-w-0 flex-1"
-            >
-              <div
-                className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-md text-sm font-bold
+// ------------------- Stepper (same JSX/classes) -------------------
+const MilestoneStepper: React.FC<{ patients: number }> = React.memo(
+  ({ patients }) => {
+    const idx = MILESTONES.findIndex(
+      (m) => patients >= m.min && patients <= m.max
+    );
+    return (
+      <div className="w-full flex items-center">
+        {MILESTONES.map((m, i) => {
+          const reached = i <= idx;
+          const isCurrent = i === idx;
+          return (
+            <React.Fragment key={i}>
+              <motion.div
+                animate={{ scale: isCurrent ? [1, 1.1, 1] : 1 }}
+                transition={{ repeat: isCurrent ? Infinity : 0, duration: 1 }}
+                className="flex flex-col items-center text-center min-w-0 flex-1"
+              >
+                <div
+                  className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-md text-sm font-bold
                   ${
                     reached
                       ? "bg-gradient-to-br from-red-600 to-orange-500 text-white border-red-600"
                       : "bg-gray-100 text-gray-400 border-gray-300"
                   }`}
-              >
-                ₹{m.rate}
-              </div>
-              <span
-                className={`mt-1 text-xs font-semibold ${
-                  reached ? "text-red-700" : "text-gray-500"
-                }`}
-              >
-                {m.max === Infinity ? `${m.min}+` : `${m.min}–${m.max}`}
-              </span>
-              <span className="text-[10px] text-gray-400">Patients</span>
-            </motion.div>
-            {i < MILESTONES.length - 1 && (
-              <div
-                className={`h-1 flex-1 mx-2 rounded-full ${
-                  i < idx
-                    ? "bg-gradient-to-r from-red-600 to-orange-500"
-                    : "bg-gray-300"
-                }`}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-};
+                >
+                  ₹{m.rate}
+                </div>
+                <span
+                  className={`mt-1 text-xs font-semibold ${
+                    reached ? "text-red-700" : "text-gray-500"
+                  }`}
+                >
+                  {m.max === Infinity ? `${m.min}+` : `${m.min}–${m.max}`}
+                </span>
+                <span className="text-[10px] text-gray-400">Patients</span>
+              </motion.div>
+              {i < MILESTONES.length - 1 && (
+                <div
+                  className={`h-1 flex-1 mx-2 rounded-full ${
+                    i < idx
+                      ? "bg-gradient-to-r from-red-600 to-orange-500"
+                      : "bg-gray-300"
+                  }`}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  }
+);
+MilestoneStepper.displayName = "MilestoneStepper";
 
-// ------------------- Main -------------------
-const PartnerDashboard: React.FC = () => {
-  const [patients, setPatients] = useState<number>(0);
-  const [copied, setCopied] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [isTncOpen, setIsTncOpen] = useState(false);
+// ------------------- Main (UI preserved) -------------------
+const PartnerDashboardInner: React.FC = () => {
+  const {
+    patients,
+    promoCode,
+    copied,
+    isTncOpen,
+    offerStart,
+    offerEnd,
+    windowSize,
+    showConfetti,
+    commission,
+    milestone,
+    next,
+    setCopied,
+    incPatients,
+    decPatients,
+    openTnc,
+    closeTnc,
+    resetOffer,
+  } = usePartnerDashboard();
+
   const fhcDialogRef = useRef<HTMLDivElement>(null);
-
-  const [windowSize, setWindowSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-
-  // promo code state - default fallback to placeholder
-  const [promoCode, setPromoCode] = useState<string>("LSAVE123");
-
-  const commission = calculateCommission(patients);
-  const milestone = useMemo(() => currentMilestone(patients), [patients]);
-  const next = useMemo(() => nextMilestone(patients), [patients]);
-
-  // Default fallback cycle start (if createdAt isn't available)
-  const DEFAULT_CYCLE_START = new Date("2025-09-01T00:00:00");
-
-  // Offer start/end state (initialized to default; may be overwritten by createdAt)
-  const [offerStart, setOfferStart] = useState<Date>(DEFAULT_CYCLE_START);
-  const [offerEnd, setOfferEnd] = useState<Date>(
-    new Date(DEFAULT_CYCLE_START.getTime() + 15 * 24 * 60 * 60 * 1000)
-  );
-
-  const resetOffer = () => {
-    const nextStart = new Date(offerEnd);
-    const nextEnd = new Date(nextStart.getTime() + 15 * 24 * 60 * 60 * 1000);
-    setOfferStart(nextStart);
-    setOfferEnd(nextEnd);
-  };
-
-  // ---------- Milestone confetti (index-based) ----------
-  const getMilestoneIndex = (count: number) =>
-    MILESTONES.findIndex((m) => count >= m.min && count <= m.max);
-
-  const initialIndex = getMilestoneIndex(patients);
-  const [, setLastMilestoneIndex] = useState<number>(
-    initialIndex >= 0 ? initialIndex : -1
-  );
-  const lastMilestoneIndexRef = useRef<number>(
-    initialIndex >= 0 ? initialIndex : -1
-  );
-  const confettiTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const idx = getMilestoneIndex(patients);
-
-    if (idx > lastMilestoneIndexRef.current) {
-      setShowConfetti(true);
-      setLastMilestoneIndex(idx);
-      lastMilestoneIndexRef.current = idx;
-
-      if (confettiTimerRef.current) {
-        window.clearTimeout(confettiTimerRef.current);
-        confettiTimerRef.current = null;
-      }
-      confettiTimerRef.current = window.setTimeout(() => {
-        setShowConfetti(false);
-        confettiTimerRef.current = null;
-      }, 5000);
-    }
-
-    return () => {
-      if (confettiTimerRef.current) {
-        window.clearTimeout(confettiTimerRef.current);
-        confettiTimerRef.current = null;
-      }
-    };
-  }, [patients]);
-
-  // ---------------------------------------
-
-  // ✅ Load promo code and createdAt from Capacitor Preferences (works in browser & Capacitor apps)
-  useEffect(() => {
-    let mounted = true;
-    const fetchFromPrefs = async () => {
-      try {
-        // first prefer explicit promocode key
-        const { value: promoValue } = await Preferences.get({ key: "promocode" });
-        if (!mounted) return;
-        if (promoValue && promoValue.length > 0) {
-          setPromoCode(promoValue);
-        }
-
-        // then try the user object (often stored on login)
-        const { value: userJson } = await Preferences.get({ key: "user" });
-        if (!mounted) return;
-        if (userJson) {
-          try {
-            const user = JSON.parse(userJson);
-
-            // promocode fallback from user object
-            if (!promoValue || promoValue.length === 0) {
-              if (user?.promocode) setPromoCode(user.promocode);
-              else if (user?.referralCode) setPromoCode(user.referralCode);
-            }
-
-            // If createdAt exists, use its date only (set hours to midnight local)
-            if (user?.createdAt) {
-              const parsed = new Date(user.createdAt);
-              if (!isNaN(parsed.getTime())) {
-                // make a date-only (local midnight) from createdAt
-                const dateOnly = new Date(parsed);
-                dateOnly.setHours(0, 0, 0, 0);
-
-                // set offer start/end based on this date-only value
-                const start = dateOnly;
-                const end = new Date(start.getTime() + 15 * 24 * 60 * 60 * 1000);
-
-                setOfferStart(start);
-                setOfferEnd(end);
-              }
-            }
-          } catch (e) {
-            // ignore parse errors
-            console.warn("Failed to parse stored user JSON", e);
-          }
-        }
-
-        // final fallback if nothing was found
-        if ((!promoValue || promoValue.length === 0) && !userJson) {
-          setPromoCode("LSAVE123");
-        }
-      } catch (err) {
-        console.error("Failed to load preferences:", err);
-        if (mounted) {
-          setPromoCode("LSAVE123");
-          setOfferStart(DEFAULT_CYCLE_START);
-          setOfferEnd(new Date(DEFAULT_CYCLE_START.getTime() + 15 * 24 * 60 * 60 * 1000));
-        }
-      }
-    };
-
-    fetchFromPrefs();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // copy feedback reset
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 2500);
-    return () => clearTimeout(t);
-  }, [copied]);
-
-  // ✅ Responsive window size
-  useEffect(() => {
-    const updateSize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-    window.addEventListener("resize", updateSize);
-    updateSize();
-    return () => window.removeEventListener("resize", updateSize);
-  }, []);
-
-  // NOTE: Layout changes for large screens (landscape-like)
-  // - Use wider container (max-w-7xl)
-  // - Switch inner layout to two-column (left: promo/stats; right: stepper/summary/rewards)
-  // - Make cards slightly wider on lg
 
   return (
     <div
@@ -415,7 +211,7 @@ const PartnerDashboard: React.FC = () => {
 
           {/* T&C Button in Header */}
           <button
-            onClick={() => setIsTncOpen(true)}
+            onClick={openTnc}
             className="ml-auto text-sm px-4 py-2 rounded-full bg-white/20 text-white font-semibold shadow hover:bg-white/30 transition flex items-center gap-2"
           >
             <FaFileContract /> T&C
@@ -428,7 +224,11 @@ const PartnerDashboard: React.FC = () => {
           <div className="space-y-6">
             {/* Promo Code */}
             <SectionCard
-              title={<span className="flex items-center gap-2">🎟️ Your Promo Code</span>}
+              title={
+                <span className="flex items-center gap-2">
+                  🎟️ Your Promo Code
+                </span>
+              }
               right={
                 <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
                   <button className="px-3 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow hover:scale-105 transition flex items-center gap-2">
@@ -451,21 +251,37 @@ const PartnerDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
                 <FaUserFriends size={28} className="mb-2" />
-                <div className="text-4xl lg:text-5xl font-extrabold">{patients}</div>
-                <div className="text-sm uppercase tracking-wider">Patients Referred</div>
+                <div className="text-4xl lg:text-5xl font-extrabold">
+                  {patients}
+                </div>
+                <div className="text-sm uppercase tracking-wider">
+                  Patients Referred
+                </div>
               </div>
               <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
                 <FaRupeeSign size={28} className="mb-2" />
-                <div className="text-4xl lg:text-5xl font-extrabold">₹{commission}</div>
-                <div className="text-sm uppercase tracking-wider">Commission Earned</div>
+                <div className="text-4xl lg:text-5xl font-extrabold">
+                  ₹{commission}
+                </div>
+                <div className="text-sm uppercase tracking-wider">
+                  Commission Earned
+                </div>
               </div>
             </div>
 
             {/* Rewards Card - keep full width of left column */}
-            <SectionCard title={<span className="flex items-center gap-2"><FaGift /> Rewards & Bonuses</span>}>
+            <SectionCard
+              title={
+                <span className="flex items-center gap-2">
+                  <FaGift /> Rewards & Bonuses
+                </span>
+              }
+            >
               <div className="w-full mt-2">
                 <div className="w-full px-6 py-6 bg-gradient-to-r from-yellow-100 via-pink-100 to-purple-100 rounded-xl shadow-md border border-yellow-200 text-center">
-                  <div className="text-lg lg:text-xl font-bold text-gray-800">🎁 Coming Soon</div>
+                  <div className="text-lg lg:text-xl font-bold text-gray-800">
+                    🎁 Coming Soon
+                  </div>
                   <p className="text-sm lg:text-base text-gray-700 mt-1 leading-relaxed">
                     ✨ Extra <span className="font-bold text-red-600">cashback</span> +
                     <span className="font-bold text-indigo-600"> badges</span> <br />
@@ -479,17 +295,21 @@ const PartnerDashboard: React.FC = () => {
           {/* RIGHT COLUMN: Stepper + Summary + CTA */}
           <div className="space-y-6">
             <SectionCard
-              title={<span className="flex items-center gap-2"><FaCheckCircle /> Milestone Progress</span>}
+              title={
+                <span className="flex items-center gap-2">
+                  <FaCheckCircle /> Milestone Progress
+                </span>
+              }
               right={
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setPatients((p) => Math.max(0, p - 1))}
+                    onClick={decPatients}
                     className="px-3 py-2 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 shadow-sm hover:from-gray-300 hover:to-gray-400 transition"
                   >
                     <FaMinus />
                   </button>
                   <button
-                    onClick={() => setPatients((p) => p + 1)}
+                    onClick={incPatients}
                     className="px-3 py-2 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-md hover:from-red-600 hover:to-orange-600 transition"
                   >
                     <FaPlus />
@@ -502,10 +322,14 @@ const PartnerDashboard: React.FC = () => {
                 <div className="mt-4 text-center">
                   <div className="inline-block px-4 py-2 bg-gradient-to-r from-red-100 via-yellow-50 to-green-100 rounded-xl shadow-md border border-red-200">
                     <span className="text-sm lg:text-base text-gray-800 font-medium">
-                      🚀 You need {" "}
-                      <span className="font-bold text-red-600 text-lg">{next.min - patients}</span>{" "}
-                      more patients to unlock {" "}
-                      <span className="font-bold text-green-700 text-lg">₹{next.rate}/patient</span>
+                      🚀 You need{" "}
+                      <span className="font-bold text-red-600 text-lg">
+                        {next.min - patients}
+                      </span>{" "}
+                      more patients to unlock{" "}
+                      <span className="font-bold text-green-700 text-lg">
+                        ₹{next.rate}/patient
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -516,20 +340,32 @@ const PartnerDashboard: React.FC = () => {
               )}
             </SectionCard>
 
-            <SectionCard title={<span className="flex items-center gap-2"><FaChartLine /> Your Summary</span>}>
+            <SectionCard
+              title={
+                <span className="flex items-center gap-2">
+                  <FaChartLine /> Your Summary
+                </span>
+              }
+            >
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100 shadow">
-                  <div className="text-2xl lg:text-lg font-extrabold text-red-700">{patients}</div>
+                  <div className="text-2xl lg:text-lg font-extrabold text-red-700">
+                    {patients}
+                  </div>
                   <div className="text-xs text-gray-600">Patients Referred</div>
                 </div>
                 <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100 shadow">
-                  <div className="text-2xl lg:text-lg font-extrabold text-green-700">₹{commission}</div>
+                  <div className="text-2xl lg:text-lg font-extrabold text-green-700">
+                    ₹{commission}
+                  </div>
                   <div className="text-xs text-gray-600">Total Commission</div>
                 </div>
                 <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 shadow">
                   {milestone ? (
                     <>
-                      <div className="text-2xl lg:text-lg font-extrabold text-yellow-700">₹{milestone.rate}</div>
+                      <div className="text-2xl lg:text-lg font-extrabold text-yellow-700">
+                        ₹{milestone.rate}
+                      </div>
                       <div className="text-xs text-gray-600">Per Patient</div>
                     </>
                   ) : (
@@ -544,7 +380,9 @@ const PartnerDashboard: React.FC = () => {
               <div className="flex items-start gap-4">
                 <div className="flex-1">
                   <h4 className="font-bold text-lg">Share & Earn</h4>
-                  <p className="text-sm text-gray-600 mt-1">Use your promo code on socials or send directly to patients. Higher tiers unlock better rewards.</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Use your promo code on socials or send directly to patients. Higher tiers unlock better rewards.
+                  </p>
                 </div>
                 <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
                   <button className="px-3 py-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow">
@@ -561,7 +399,11 @@ const PartnerDashboard: React.FC = () => {
       {offerStart && offerEnd && (
         <div className="fixed bottom-14 left-1/2 transform -translate-x-1/2 z-50">
           <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl px-4 py-3 border border-red-200">
-            <CountdownTimer endDate={offerEnd} startDate={offerStart} onEnd={resetOffer} />
+            <CountdownTimer
+              endDate={offerEnd}
+              startDate={offerStart}
+              onEnd={resetOffer}
+            />
           </div>
         </div>
       )}
@@ -569,12 +411,18 @@ const PartnerDashboard: React.FC = () => {
       {/* Terms & Conditions Modal */}
       {isTncOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div ref={fhcDialogRef} className="bg-gradient-to-br from-white to-red-50 rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col relative border border-red-100">
+          <div
+            ref={fhcDialogRef}
+            className="bg-gradient-to-br from-white to-red-50 rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col relative border border-red-100"
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-gradient-to-br from-white to-red-50 z-10 rounded-t-2xl">
               <h2 className="text-lg sm:text-xl font-extrabold text-red-700 tracking-tight flex items-center gap-2">
                 <FaFileContract className="text-red-600" /> Referral Offer — T&C
               </h2>
-              <button onClick={() => setIsTncOpen(false)} className="p-2 rounded-full bg-red-100 hover:bg-red-200 focus:outline-none">
+              <button
+                onClick={closeTnc}
+                className="p-2 rounded-full bg-red-100 hover:bg-red-200 focus:outline-none"
+              >
                 <FaTimes size={20} className="text-red-600" />
               </button>
             </div>
@@ -594,8 +442,18 @@ const PartnerDashboard: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-6 py-4 bg-gradient-to-br from-white to-red-50 rounded-b-2xl">
-              <button onClick={() => setIsTncOpen(false)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Close</button>
-              <button onClick={() => setIsTncOpen(false)} className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 shadow">Got it</button>
+              <button
+                onClick={closeTnc}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={closeTnc}
+                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 shadow"
+              >
+                Got it
+              </button>
             </div>
           </div>
         </div>
@@ -604,4 +462,6 @@ const PartnerDashboard: React.FC = () => {
   );
 };
 
+const PartnerDashboard = React.memo(PartnerDashboardInner);
+PartnerDashboard.displayName = "PartnerDashboard";
 export default PartnerDashboard;
