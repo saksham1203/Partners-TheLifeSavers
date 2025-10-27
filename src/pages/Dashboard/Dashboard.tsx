@@ -1,4 +1,3 @@
-// PartnerDashboard.tsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Preferences } from "@capacitor/preferences";
 import {
@@ -140,9 +139,9 @@ const CountdownTimer: React.FC<{
       </div>
 
       <p className="text-[10px] sm:text-xs text-gray-700 font-semibold mt-1">
-        Cycle:{" "}
+        Cycle: {" "}
         <span className="text-red-600 font-bold">{startDate.toDateString()}</span>{" "}
-        →{" "}
+        → {" "}
         <span className="text-green-700 font-bold">{endDate.toDateString()}</span>
       </p>
     </div>
@@ -382,6 +381,11 @@ const PartnerDashboard: React.FC = () => {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  // NOTE: Layout changes for large screens (landscape-like)
+  // - Use wider container (max-w-7xl)
+  // - Switch inner layout to two-column (left: promo/stats; right: stepper/summary/rewards)
+  // - Make cards slightly wider on lg
+
   return (
     <div
       className="min-h-screen flex items-center justify-center "
@@ -397,7 +401,7 @@ const PartnerDashboard: React.FC = () => {
         />
       )}
 
-      <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl max-w-4xl w-full overflow-hidden ring-1 ring-red-100 relative">
+      <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl max-w-7xl w-full overflow-hidden ring-1 ring-red-100 relative">
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white py-6 px-6 flex items-center justify-between">
           <div className="flex flex-col items-center">
@@ -418,119 +422,138 @@ const PartnerDashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Promo Code */}
-          <SectionCard
-            title={<span className="flex items-center gap-2">🎟️ Your Promo Code</span>}
-            right={
-              <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
-                <button className="px-3 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow hover:scale-105 transition flex items-center gap-2">
-                  <FaCopy /> {copied ? "Copied!" : "Copy"}
-                </button>
-              </CopyToClipboard>
-            }
-          >
-            <div className="text-center">
-              <div className="text-2xl font-extrabold text-red-600 tracking-widest">
-                {promoCode}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Share this code with patients to get rewards!
-              </p>
-            </div>
-          </SectionCard>
-
-          {/* Stats Cards */}
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div className="rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white p-5 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
-              <FaUserFriends size={26} className="mb-2" />
-              <div className="text-3xl font-extrabold">{patients}</div>
-              <div className="text-sm uppercase tracking-wider">Patients Referred</div>
-            </div>
-            <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-5 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
-              <FaRupeeSign size={26} className="mb-2" />
-              <div className="text-3xl font-extrabold">₹{commission}</div>
-              <div className="text-sm uppercase tracking-wider">Commission Earned</div>
-            </div>
-          </div>
-
-          {/* Stepper */}
-          <SectionCard
-            title={<span className="flex items-center gap-2"><FaCheckCircle /> Milestone Progress</span>}
-            right={
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPatients((p) => Math.max(0, p - 1))}
-                  className="px-3 py-2 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 shadow-sm hover:from-gray-300 hover:to-gray-400 transition"
-                >
-                  <FaMinus />
-                </button>
-                <button
-                  onClick={() => setPatients((p) => p + 1)}
-                  className="px-3 py-2 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-md hover:from-red-600 hover:to-orange-600 transition"
-                >
-                  <FaPlus />
-                </button>
-              </div>
-            }
-          >
-            <MilestoneStepper patients={patients} />
-            {next ? (
-              <div className="mt-4 text-center">
-                <div className="inline-block px-4 py-2 bg-gradient-to-r from-red-100 via-yellow-50 to-green-100 rounded-xl shadow-md border border-red-200">
-                  <span className="text-sm sm:text-base text-gray-800 font-medium">
-                    🚀 You need{" "}
-                    <span className="font-bold text-red-600 text-lg">{next.min - patients}</span>{" "}
-                    more patients to unlock{" "}
-                    <span className="font-bold text-green-700 text-lg">₹{next.rate}/patient</span>
-                  </span>
+        {/* Content - landscape-friendly: two-column on lg */}
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* LEFT COLUMN: Promo + Stats */}
+          <div className="space-y-6">
+            {/* Promo Code */}
+            <SectionCard
+              title={<span className="flex items-center gap-2">🎟️ Your Promo Code</span>}
+              right={
+                <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
+                  <button className="px-3 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow hover:scale-105 transition flex items-center gap-2">
+                    <FaCopy /> {copied ? "Copied!" : "Copy"}
+                  </button>
+                </CopyToClipboard>
+              }
+            >
+              <div className="text-center">
+                <div className="text-3xl lg:text-4xl font-extrabold text-red-600 tracking-widest">
+                  {promoCode}
                 </div>
-              </div>
-            ) : (
-              <div className="mt-4 text-base text-green-700 font-bold text-center">
-                You’ve reached the highest milestone!
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Summary */}
-          <SectionCard title={<span className="flex items-center gap-2"><FaChartLine /> Your Summary</span>}>
-            <div className="grid sm:grid-cols-3 gap-4 text-center">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100 shadow">
-                <div className="text-lg font-extrabold text-red-700">{patients}</div>
-                <div className="text-xs text-gray-600">Patients Referred</div>
-              </div>
-              <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100 shadow">
-                <div className="text-lg font-extrabold text-green-700">₹{commission}</div>
-                <div className="text-xs text-gray-600">Total Commission</div>
-              </div>
-              <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 shadow">
-                {milestone ? (
-                  <>
-                    <div className="text-lg font-extrabold text-yellow-700">₹{milestone.rate}</div>
-                    <div className="text-xs text-gray-600">Per Patient</div>
-                  </>
-                ) : (
-                  <div className="text-xs text-gray-600">No milestone</div>
-                )}
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* Rewards */}
-          <SectionCard title={<span className="flex items-center gap-2"><FaGift /> Rewards & Bonuses</span>}>
-            <div className="w-full mt-2">
-              <div className="w-full px-5 py-4 bg-gradient-to-r from-yellow-100 via-pink-100 to-purple-100 rounded-xl shadow-md border border-yellow-200 text-center">
-                <div className="text-lg sm:text-xl font-bold text-gray-800">🎁 Coming Soon</div>
-                <p className="text-sm sm:text-base text-gray-700 mt-1 leading-relaxed">
-                  ✨ Extra <span className="font-bold text-red-600">cashback</span> +
-                  <span className="font-bold text-indigo-600"> badges</span> <br />
-                  for top-performing partners! 🏆
+                <p className="text-sm text-gray-500 mt-1">
+                  Share this code with patients to get rewards!
                 </p>
               </div>
+            </SectionCard>
+
+            {/* Stats Cards - make larger on lg */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
+                <FaUserFriends size={28} className="mb-2" />
+                <div className="text-4xl lg:text-5xl font-extrabold">{patients}</div>
+                <div className="text-sm uppercase tracking-wider">Patients Referred</div>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
+                <FaRupeeSign size={28} className="mb-2" />
+                <div className="text-4xl lg:text-5xl font-extrabold">₹{commission}</div>
+                <div className="text-sm uppercase tracking-wider">Commission Earned</div>
+              </div>
             </div>
-          </SectionCard>
+
+            {/* Rewards Card - keep full width of left column */}
+            <SectionCard title={<span className="flex items-center gap-2"><FaGift /> Rewards & Bonuses</span>}>
+              <div className="w-full mt-2">
+                <div className="w-full px-6 py-6 bg-gradient-to-r from-yellow-100 via-pink-100 to-purple-100 rounded-xl shadow-md border border-yellow-200 text-center">
+                  <div className="text-lg lg:text-xl font-bold text-gray-800">🎁 Coming Soon</div>
+                  <p className="text-sm lg:text-base text-gray-700 mt-1 leading-relaxed">
+                    ✨ Extra <span className="font-bold text-red-600">cashback</span> +
+                    <span className="font-bold text-indigo-600"> badges</span> <br />
+                    for top-performing partners! 🏆
+                  </p>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* RIGHT COLUMN: Stepper + Summary + CTA */}
+          <div className="space-y-6">
+            <SectionCard
+              title={<span className="flex items-center gap-2"><FaCheckCircle /> Milestone Progress</span>}
+              right={
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPatients((p) => Math.max(0, p - 1))}
+                    className="px-3 py-2 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 shadow-sm hover:from-gray-300 hover:to-gray-400 transition"
+                  >
+                    <FaMinus />
+                  </button>
+                  <button
+                    onClick={() => setPatients((p) => p + 1)}
+                    className="px-3 py-2 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-md hover:from-red-600 hover:to-orange-600 transition"
+                  >
+                    <FaPlus />
+                  </button>
+                </div>
+              }
+            >
+              <MilestoneStepper patients={patients} />
+              {next ? (
+                <div className="mt-4 text-center">
+                  <div className="inline-block px-4 py-2 bg-gradient-to-r from-red-100 via-yellow-50 to-green-100 rounded-xl shadow-md border border-red-200">
+                    <span className="text-sm lg:text-base text-gray-800 font-medium">
+                      🚀 You need {" "}
+                      <span className="font-bold text-red-600 text-lg">{next.min - patients}</span>{" "}
+                      more patients to unlock {" "}
+                      <span className="font-bold text-green-700 text-lg">₹{next.rate}/patient</span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 text-base text-green-700 font-bold text-center">
+                  You’ve reached the highest milestone!
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard title={<span className="flex items-center gap-2"><FaChartLine /> Your Summary</span>}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100 shadow">
+                  <div className="text-2xl lg:text-lg font-extrabold text-red-700">{patients}</div>
+                  <div className="text-xs text-gray-600">Patients Referred</div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100 shadow">
+                  <div className="text-2xl lg:text-lg font-extrabold text-green-700">₹{commission}</div>
+                  <div className="text-xs text-gray-600">Total Commission</div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 shadow">
+                  {milestone ? (
+                    <>
+                      <div className="text-2xl lg:text-lg font-extrabold text-yellow-700">₹{milestone.rate}</div>
+                      <div className="text-xs text-gray-600">Per Patient</div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-gray-600">No milestone</div>
+                  )}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Optional CTA / Promo copy area - wider on large screens */}
+            <div className="rounded-2xl border border-red-100 bg-white/90 p-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <h4 className="font-bold text-lg">Share & Earn</h4>
+                  <p className="text-sm text-gray-600 mt-1">Use your promo code on socials or send directly to patients. Higher tiers unlock better rewards.</p>
+                </div>
+                <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
+                  <button className="px-3 py-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow">
+                    Copy Code
+                  </button>
+                </CopyToClipboard>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
