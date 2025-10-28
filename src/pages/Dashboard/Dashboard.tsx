@@ -11,6 +11,7 @@ import {
   FaCopy,
   FaTimes,
   FaFileContract,
+  FaHistory,
 } from "react-icons/fa";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import Confetti from "react-confetti";
@@ -19,6 +20,9 @@ import { motion } from "framer-motion";
 // moved logic to service/hooks but keeping UI the same
 import { MILESTONES } from "../../services/partnerService";
 import { usePartnerDashboard, useCountdown } from "../../hooks/usePartnerDashboard";
+
+// NEW: History modal
+import PartnerHistoryModal from "../../Components/Models/PartnerHistoryModal";
 
 // ------------------- CountdownTimer (same markup) -------------------
 const CountdownTimer: React.FC<{
@@ -178,6 +182,12 @@ const PartnerDashboardInner: React.FC = () => {
     openTnc,
     closeTnc,
     resetOffer,
+
+    // NEW: history wiring from hook
+    history,
+    isHistoryOpen,
+    openHistory,
+    closeHistory,
   } = usePartnerDashboard();
 
   const fhcDialogRef = useRef<HTMLDivElement>(null);
@@ -209,13 +219,25 @@ const PartnerDashboardInner: React.FC = () => {
             </span>
           </div>
 
-          {/* T&C Button in Header */}
-          <button
-            onClick={openTnc}
-            className="ml-auto text-sm px-4 py-2 rounded-full bg-white/20 text-white font-semibold shadow hover:bg-white/30 transition flex items-center gap-2"
-          >
-            <FaFileContract /> T&C
-          </button>
+          {/* Header actions */}
+          <div className="ml-auto flex items-center gap-2">
+            {/* NEW: History Button */}
+            <button
+              onClick={openHistory}
+              className="text-sm px-4 py-2 rounded-full bg-white/20 text-white font-semibold shadow hover:bg-white/30 transition flex items-center gap-2"
+              aria-label="View history"
+            >
+              <FaHistory /> History
+            </button>
+
+            {/* T&C Button in Header */}
+            <button
+              onClick={openTnc}
+              className="text-sm px-4 py-2 rounded-full bg-white/20 text-white font-semibold shadow hover:bg-white/30 transition flex items-center gap-2"
+            >
+              <FaFileContract /> T&C
+            </button>
+          </div>
         </div>
 
         {/* Content - landscape-friendly: two-column on lg */}
@@ -458,6 +480,13 @@ const PartnerDashboardInner: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* NEW: Partner History Modal */}
+      <PartnerHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={closeHistory}
+        cycles={history}
+      />
     </div>
   );
 };

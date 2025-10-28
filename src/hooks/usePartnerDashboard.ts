@@ -1,5 +1,6 @@
 // src/hooks/usePartnerDashboard.ts
 import React from "react";
+import { Preferences } from "@capacitor/preferences";
 import {
   calculateCommission,
   currentMilestone,
@@ -10,6 +11,20 @@ import {
   DEFAULT_CYCLE_LENGTH_DAYS,
   MILESTONES,
 } from "../services/partnerService";
+
+// ------------------- Shared types for history -------------------
+export type PaymentStatus = "paid" | "pending" | "unpaid";
+
+export interface CycleHistoryItem {
+  id: string;                 // backend id or synthetic `${startDate}-${endDate}`
+  startDate: string;          // ISO date
+  endDate: string;            // ISO date
+  totalPatients: number;
+  totalCommission: number;    // rupees
+  paymentStatus: PaymentStatus;
+  paymentRef?: string | null; // txn id / UTR
+  paidAt?: string | null;     // ISO date if paid
+}
 
 // ------------------- Countdown helpers -------------------
 const calcTimeLeft = (endTime: number) => {
@@ -49,6 +64,86 @@ export const useCountdown = (endDate: Date, onEnd: () => void) => {
   return timeLeft;
 };
 
+// ------------------- Helpers: history load/save -------------------
+const HISTORY_PREFS_KEY = "partner_history";
+
+/**
+ * Try backend first, then Preferences, then sample.
+ * You can replace the fetch URL with your real endpoint.
+ */
+async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
+  // 1) Backend (happy path)
+  try {
+    const res = await fetch("/api/partner/history", { credentials: "include" });
+    if (res.ok) {
+      const data = (await res.json()) as CycleHistoryItem[];
+      if (Array.isArray(data)) return data;
+    }
+  } catch {
+    // ignore; fall through to prefs
+  }
+
+  // 2) Capacitor Preferences
+  try {
+    const { value } = await Preferences.get({ key: HISTORY_PREFS_KEY });
+    if (value) {
+      const parsed = JSON.parse(value) as CycleHistoryItem[];
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // ignore; fall through to sample
+  }
+
+  // 3) Sample (safe demo content)
+  const today = new Date();
+  const d = (days: number) => {
+    const t = new Date(today);
+    t.setDate(t.getDate() + days);
+    return t.toISOString();
+  };
+
+  return [
+    {
+      id: "demo-1",
+      startDate: d(-45), // 45 days ago
+      endDate: d(-30),   // 30 days ago
+      totalPatients: 7,
+      totalCommission: 7 * 75,
+      paymentStatus: "paid",
+      paymentRef: "UTR1234567",
+      paidAt: d(-25),
+    },
+    {
+      id: "demo-2",
+      startDate: d(-30),
+      endDate: d(-15),
+      totalPatients: 4,
+      totalCommission: 4 * 50,
+      paymentStatus: "pending",
+    },
+    {
+      id: "demo-3",
+      startDate: d(-15),
+      endDate: d(0),
+      totalPatients: 12,
+      totalCommission: 12 * 100,
+      paymentStatus: "unpaid",
+    },
+  ];
+}
+
+/** Optionally persist to Preferences after successful fetch/merge */
+async function savePartnerHistory(cycles: CycleHistoryItem[]) {
+  try {
+    await Preferences.set({
+      key: HISTORY_PREFS_KEY,
+      value: JSON.stringify(cycles),
+    });
+  } catch {
+    // non-fatal
+  }
+}
+
 // ------------------- Core dashboard hook -------------------
 export const usePartnerDashboard = () => {
   // state (matches original)
@@ -58,8 +153,8 @@ export const usePartnerDashboard = () => {
   const [isTncOpen, setIsTncOpen] = React.useState(false);
 
   const [windowSize, setWindowSize] = React.useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: typeof window !== "undefined" ? window.innerWidth : 0,
+    height: typeof window !== "undefined" ? window.innerHeight : 0,
   });
 
   // promo code state - default fallback to placeholder
@@ -82,6 +177,27 @@ export const usePartnerDashboard = () => {
     setOfferStart(nextStart);
     setOfferEnd(nextEnd);
   }, [offerEnd]);
+
+  // ---------- History state & modal controls ----------
+  const [history, setHistory] = React.useState<CycleHistoryItem[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+  const openHistory = React.useCallback(() => setIsHistoryOpen(true), []);
+  const closeHistory = React.useCallback(() => setIsHistoryOpen(false), []);
+
+  // Load history once (backend -> prefs -> sample). Save to prefs for quick subsequent loads.
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const cycles = await loadPartnerHistory();
+      if (!mounted) return;
+      setHistory(cycles);
+      // store for offline/demo convenience
+      savePartnerHistory(cycles);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // ---------- Milestone confetti (index-based) ----------
   const getIndex = React.useCallback(
@@ -189,6 +305,10 @@ export const usePartnerDashboard = () => {
     next,
     MILESTONES,
 
+    // history
+    history,
+    isHistoryOpen,
+
     // actions
     setCopied,
     decPatients,
@@ -196,5 +316,10 @@ export const usePartnerDashboard = () => {
     openTnc,
     closeTnc,
     resetOffer,
+
+    // history actions
+    openHistory,
+    closeHistory,
+    setHistory, // exposed in case you refresh after paying a cycle
   } as const;
 };
