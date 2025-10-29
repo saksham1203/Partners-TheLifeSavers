@@ -97,7 +97,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
 
 /* ----------------------------- NEW: API LAYER ----------------------------- */
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://dev-service-thelifesavers-in.onrender.com/api";
 
 /** Try Capacitor Preferences first, then fall back to localStorage (web). */
 async function getAuthToken(): Promise<string | null> {
