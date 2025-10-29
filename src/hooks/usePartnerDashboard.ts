@@ -10,7 +10,7 @@ import {
   DEFAULT_CYCLE_START,
   DEFAULT_CYCLE_LENGTH_DAYS,
   MILESTONES,
-  // NEW imports:
+  // Live API helpers
   fetchPartnerDashboard,
   fetchPartnerCycles,
   mapBackendCyclesToHistoryItems,
@@ -73,7 +73,8 @@ export const useCountdown = (endDate: Date, onEnd: () => void) => {
 const HISTORY_PREFS_KEY = "partner_history";
 
 /**
- * Load history from backend first (live), then prefs fallback, then sample.
+ * Load history from backend first (live), then prefs fallback, then empty.
+ * (Your UI already handles empty gracefully.)
  */
 async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
   // 1) Backend (live)
@@ -103,44 +104,11 @@ async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
     }
   } catch {}
 
-  // 3) Sample fallback
-  const today = new Date();
-  const d = (days: number) => {
-    const t = new Date(today);
-    t.setDate(t.getDate() + days);
-    return t.toISOString();
-    };
-  return [
-    {
-      id: "demo-1",
-      startDate: d(-45),
-      endDate: d(-30),
-      totalPatients: 7,
-      totalCommission: 7 * 75,
-      paymentStatus: "paid",
-      paymentRef: "UTR1234567",
-      paidAt: d(-25),
-    },
-    {
-      id: "demo-2",
-      startDate: d(-30),
-      endDate: d(-15),
-      totalPatients: 4,
-      totalCommission: 4 * 50,
-      paymentStatus: "pending",
-    },
-    {
-      id: "demo-3",
-      startDate: d(-15),
-      endDate: d(0),
-      totalPatients: 12,
-      totalCommission: 12 * 100,
-      paymentStatus: "unpaid",
-    },
-  ];
+  // 3) Empty fallback (you can keep the old sample if you prefer demo data)
+  return [];
 }
 
-/** Optionally persist to Preferences after successful fetch/merge */
+/** Persist to Preferences after successful fetch/merge */
 async function savePartnerHistory(cycles: CycleHistoryItem[]) {
   try {
     await Preferences.set({
@@ -152,11 +120,12 @@ async function savePartnerHistory(cycles: CycleHistoryItem[]) {
 
 // ------------------- Core dashboard hook -------------------
 export const usePartnerDashboard = () => {
-  // state (matches original)
+  // state
   const [patients, setPatients] = React.useState<number>(0);
   const [copied, setCopied] = React.useState(false);
   const [showConfetti, setShowConfetti] = React.useState(false);
   const [isTncOpen, setIsTncOpen] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const [windowSize, setWindowSize] = React.useState({
     width: typeof window !== "undefined" ? window.innerWidth : 0,
@@ -184,85 +153,64 @@ export const usePartnerDashboard = () => {
     setOfferEnd(nextEnd);
   }, [offerEnd]);
 
-  // ---------- History state & modal controls ----------
+  // history state & modal controls
   const [history, setHistory] = React.useState<CycleHistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
   const openHistory = React.useCallback(() => setIsHistoryOpen(true), []);
   const closeHistory = React.useCallback(() => setIsHistoryOpen(false), []);
 
-  // Load LIVE dashboard (patients/commission/promo/cycle) on mount.
-  React.useEffect(() => {
-    let mounted = true;
-    (async () => {
+  // ✅ Refresh function (public)
+  const refreshDashboard = React.useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // Dashboard
+      const d = await fetchPartnerDashboard();
+      setPromoCode(d.promoCode || "LSAVE123");
+      setOfferStart(new Date(d.cycle.start));
+      setOfferEnd(new Date(d.cycle.end));
+      setPatients(d.patients ?? 0);
+
+      // History
+      const cycles = await fetchPartnerCycles();
+      const mapped = mapBackendCyclesToHistoryItems(cycles);
+      setHistory(mapped);
+      savePartnerHistory(mapped);
+    } catch (err) {
+      console.warn("Refresh failed; falling back to local prefs", err);
+      // minimal fallback for promo/cycle if backend is down
       try {
-        // try backend
-        const d = await fetchPartnerDashboard();
-        if (!mounted) return;
-
-        // promo code & cycle from backend
-        setPromoCode(d.promoCode || "LSAVE123");
-        setOfferStart(new Date(d.cycle.start));
-        setOfferEnd(new Date(d.cycle.end));
-
-        // live numbers
-        setPatients(d.patients ?? 0);
-
-        // (optional) you can read d.tier, d.nextTier, d.breakdown, d.recentReferrals if you expose them
+        const data = await loadPartnerDataFromAPI();
+        setPromoCode(data.promoCode);
+        setOfferStart(data.offerStart);
+        setOfferEnd(data.offerEnd);
       } catch {
-        // fallback to prefs (previous behavior)
-        try {
-          const data = await loadPartnerDataFromAPI(); // tries dashboard again; if fails, it throws
-          if (mounted) {
-            setPromoCode(data.promoCode);
-            setOfferStart(data.offerStart);
-            setOfferEnd(data.offerEnd);
-          }
-        } catch {
-          const local = await loadPartnerDataFromPrefs();
-          if (mounted) {
-            setPromoCode(local.promoCode);
-            setOfferStart(local.offerStart);
-            setOfferEnd(local.offerEnd);
-          }
-        }
+        const local = await loadPartnerDataFromPrefs();
+        setPromoCode(local.promoCode);
+        setOfferStart(local.offerStart);
+        setOfferEnd(local.offerEnd);
       }
-    })();
-    return () => {
-      mounted = false;
-    };
+      // history fallback
+      const cached = await loadPartnerHistory();
+      setHistory(cached);
+    } finally {
+      setIsRefreshing(false);
+    }
   }, []);
 
-  // Load history once (backend -> prefs -> sample). Save to prefs for quick loads.
+  // Load on mount
   React.useEffect(() => {
     let mounted = true;
     (async () => {
-      const cycles = await loadPartnerHistory();
+      await refreshDashboard();
       if (!mounted) return;
-      setHistory(cycles);
-      // store for offline/demo convenience
-      savePartnerHistory(cycles);
     })();
     return () => {
       mounted = false;
     };
-  }, []);
-
-  // (Optional) recent referrals example (kept internal; expose if needed)
-  // const [referrals, setReferrals] = React.useState<Array<any>>([]);
-  // React.useEffect(() => {
-  //   (async () => {
-  //     try {
-  //       const r = await fetchPartnerReferrals(5);
-  //       if (r?.success) setReferrals(r.referrals || []);
-  //     } catch {}
-  //   })();
-  // }, []);
+  }, [refreshDashboard]);
 
   // ---------- Milestone confetti ----------
-  const getIndex = React.useCallback(
-    (count: number) => getMilestoneIndex(count),
-    []
-  );
+  const getIndex = React.useCallback((count: number) => getMilestoneIndex(count), []);
 
   const initialIndex = getIndex(patients);
   const [, setLastMilestoneIndex] = React.useState<number>(
@@ -298,9 +246,6 @@ export const usePartnerDashboard = () => {
       }
     };
   }, [patients, getIndex]);
-
-  // ✅ Load promo code & createdAt from Preferences if backend wasn't reachable (handled above)
-  // (kept for full backward-compat)
 
   // copy feedback reset
   React.useEffect(() => {
@@ -341,6 +286,7 @@ export const usePartnerDashboard = () => {
     promoCode,
     offerStart,
     offerEnd,
+    isRefreshing,
 
     // derived
     commission,
@@ -359,6 +305,7 @@ export const usePartnerDashboard = () => {
     openTnc,
     closeTnc,
     resetOffer,
+    refreshDashboard,
 
     // history actions
     openHistory,

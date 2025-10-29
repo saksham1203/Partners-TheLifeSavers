@@ -12,6 +12,7 @@ import {
   FaTimes,
   FaFileContract,
   FaHistory,
+  FaSyncAlt, // ⬅️ NEW
 } from "react-icons/fa";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import Confetti from "react-confetti";
@@ -188,6 +189,10 @@ const PartnerDashboardInner: React.FC = () => {
     isHistoryOpen,
     openHistory,
     closeHistory,
+
+    // ⬅️ NEW: refresh API wiring
+    refreshDashboard,
+    isRefreshing,
   } = usePartnerDashboard();
 
   const fhcDialogRef = useRef<HTMLDivElement>(null);
@@ -221,6 +226,20 @@ const PartnerDashboardInner: React.FC = () => {
 
           {/* Header actions */}
           <div className="ml-auto flex items-center gap-2">
+            {/* ⬅️ NEW: Refresh Button */}
+            <button
+              onClick={refreshDashboard}
+              disabled={isRefreshing}
+              className={`text-sm px-4 py-2 rounded-full bg-white/20 text-white font-semibold shadow transition flex items-center gap-2 ${
+                isRefreshing ? "opacity-70 cursor-wait" : "hover:bg-white/30"
+              }`}
+              aria-label="Refresh data"
+              title="Refresh data"
+            >
+              <FaSyncAlt className={isRefreshing ? "animate-spin" : ""} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </button>
+
             {/* NEW: History Button */}
             <button
               onClick={openHistory}
