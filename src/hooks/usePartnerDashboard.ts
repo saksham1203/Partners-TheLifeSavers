@@ -10,20 +10,25 @@ import {
   DEFAULT_CYCLE_START,
   DEFAULT_CYCLE_LENGTH_DAYS,
   MILESTONES,
+  // NEW imports:
+  fetchPartnerDashboard,
+  fetchPartnerCycles,
+  mapBackendCyclesToHistoryItems,
+  loadPartnerDataFromAPI,
 } from "../services/partnerService";
 
 // ------------------- Shared types for history -------------------
 export type PaymentStatus = "paid" | "pending" | "unpaid";
 
 export interface CycleHistoryItem {
-  id: string;                 // backend id or synthetic `${startDate}-${endDate}`
-  startDate: string;          // ISO date
-  endDate: string;            // ISO date
+  id: string;
+  startDate: string;
+  endDate: string;
   totalPatients: number;
-  totalCommission: number;    // rupees
+  totalCommission: number;
   paymentStatus: PaymentStatus;
-  paymentRef?: string | null; // txn id / UTR
-  paidAt?: string | null;     // ISO date if paid
+  paymentRef?: string | null;
+  paidAt?: string | null;
 }
 
 // ------------------- Countdown helpers -------------------
@@ -68,45 +73,48 @@ export const useCountdown = (endDate: Date, onEnd: () => void) => {
 const HISTORY_PREFS_KEY = "partner_history";
 
 /**
- * Try backend first, then Preferences, then sample.
- * You can replace the fetch URL with your real endpoint.
+ * Load history from backend first (live), then prefs fallback, then sample.
  */
 async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
-  // 1) Backend (happy path)
+  // 1) Backend (live)
   try {
-    const res = await fetch("/api/partner/history", { credentials: "include" });
-    if (res.ok) {
-      const data = (await res.json()) as CycleHistoryItem[];
-      if (Array.isArray(data)) return data;
+    const data = await fetchPartnerCycles();
+    if (data?.success) {
+      const mapped = mapBackendCyclesToHistoryItems(data);
+      // Persist for offline/demo convenience
+      try {
+        await Preferences.set({
+          key: HISTORY_PREFS_KEY,
+          value: JSON.stringify(mapped),
+        });
+      } catch {}
+      return mapped;
     }
   } catch {
-    // ignore; fall through to prefs
+    // ignore and fallback
   }
 
-  // 2) Capacitor Preferences
+  // 2) Capacitor Preferences fallback
   try {
     const { value } = await Preferences.get({ key: HISTORY_PREFS_KEY });
     if (value) {
       const parsed = JSON.parse(value) as CycleHistoryItem[];
       if (Array.isArray(parsed)) return parsed;
     }
-  } catch {
-    // ignore; fall through to sample
-  }
+  } catch {}
 
-  // 3) Sample (safe demo content)
+  // 3) Sample fallback
   const today = new Date();
   const d = (days: number) => {
     const t = new Date(today);
     t.setDate(t.getDate() + days);
     return t.toISOString();
-  };
-
+    };
   return [
     {
       id: "demo-1",
-      startDate: d(-45), // 45 days ago
-      endDate: d(-30),   // 30 days ago
+      startDate: d(-45),
+      endDate: d(-30),
       totalPatients: 7,
       totalCommission: 7 * 75,
       paymentStatus: "paid",
@@ -139,9 +147,7 @@ async function savePartnerHistory(cycles: CycleHistoryItem[]) {
       key: HISTORY_PREFS_KEY,
       value: JSON.stringify(cycles),
     });
-  } catch {
-    // non-fatal
-  }
+  } catch {}
 }
 
 // ------------------- Core dashboard hook -------------------
@@ -165,7 +171,7 @@ export const usePartnerDashboard = () => {
   const milestone = React.useMemo(() => currentMilestone(patients), [patients]);
   const next = React.useMemo(() => nextMilestone(patients), [patients]);
 
-  // offer cycle (default to same start/end as original)
+  // offer cycle defaults
   const [offerStart, setOfferStart] = React.useState<Date>(DEFAULT_CYCLE_START);
   const [offerEnd, setOfferEnd] = React.useState<Date>(
     new Date(DEFAULT_CYCLE_START.getTime() + DEFAULT_CYCLE_LENGTH_DAYS * 24 * 60 * 60 * 1000)
@@ -184,7 +190,49 @@ export const usePartnerDashboard = () => {
   const openHistory = React.useCallback(() => setIsHistoryOpen(true), []);
   const closeHistory = React.useCallback(() => setIsHistoryOpen(false), []);
 
-  // Load history once (backend -> prefs -> sample). Save to prefs for quick subsequent loads.
+  // Load LIVE dashboard (patients/commission/promo/cycle) on mount.
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        // try backend
+        const d = await fetchPartnerDashboard();
+        if (!mounted) return;
+
+        // promo code & cycle from backend
+        setPromoCode(d.promoCode || "LSAVE123");
+        setOfferStart(new Date(d.cycle.start));
+        setOfferEnd(new Date(d.cycle.end));
+
+        // live numbers
+        setPatients(d.patients ?? 0);
+
+        // (optional) you can read d.tier, d.nextTier, d.breakdown, d.recentReferrals if you expose them
+      } catch {
+        // fallback to prefs (previous behavior)
+        try {
+          const data = await loadPartnerDataFromAPI(); // tries dashboard again; if fails, it throws
+          if (mounted) {
+            setPromoCode(data.promoCode);
+            setOfferStart(data.offerStart);
+            setOfferEnd(data.offerEnd);
+          }
+        } catch {
+          const local = await loadPartnerDataFromPrefs();
+          if (mounted) {
+            setPromoCode(local.promoCode);
+            setOfferStart(local.offerStart);
+            setOfferEnd(local.offerEnd);
+          }
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Load history once (backend -> prefs -> sample). Save to prefs for quick loads.
   React.useEffect(() => {
     let mounted = true;
     (async () => {
@@ -199,7 +247,18 @@ export const usePartnerDashboard = () => {
     };
   }, []);
 
-  // ---------- Milestone confetti (index-based) ----------
+  // (Optional) recent referrals example (kept internal; expose if needed)
+  // const [referrals, setReferrals] = React.useState<Array<any>>([]);
+  // React.useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       const r = await fetchPartnerReferrals(5);
+  //       if (r?.success) setReferrals(r.referrals || []);
+  //     } catch {}
+  //   })();
+  // }, []);
+
+  // ---------- Milestone confetti ----------
   const getIndex = React.useCallback(
     (count: number) => getMilestoneIndex(count),
     []
@@ -240,33 +299,17 @@ export const usePartnerDashboard = () => {
     };
   }, [patients, getIndex]);
 
-  // ✅ Load promo code & createdAt from Preferences (same behavior as original)
-  React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await loadPartnerDataFromPrefs();
-        if (!mounted) return;
-        setPromoCode(data.promoCode);
-        setOfferStart(data.offerStart);
-        setOfferEnd(data.offerEnd);
-      } catch {
-        // fall back handled by defaults already set
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // ✅ Load promo code & createdAt from Preferences if backend wasn't reachable (handled above)
+  // (kept for full backward-compat)
 
-  // copy feedback reset (same timing)
+  // copy feedback reset
   React.useEffect(() => {
     if (!copied) return;
     const t = window.setTimeout(() => setCopied(false), 2500);
     return () => window.clearTimeout(t);
   }, [copied]);
 
-  // ✅ Responsive window size
+  // responsive window size
   React.useEffect(() => {
     const updateSize = () => {
       setWindowSize({
@@ -320,6 +363,6 @@ export const usePartnerDashboard = () => {
     // history actions
     openHistory,
     closeHistory,
-    setHistory, // exposed in case you refresh after paying a cycle
+    setHistory,
   } as const;
 };
