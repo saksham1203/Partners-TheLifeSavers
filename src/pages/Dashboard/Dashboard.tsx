@@ -6,8 +6,6 @@ import {
   FaChartLine,
   FaUserFriends,
   FaRupeeSign,
-  FaPlus,
-  FaMinus,
   FaCopy,
   FaTimes,
   FaFileContract,
@@ -178,8 +176,6 @@ const PartnerDashboardInner: React.FC = () => {
     milestone,
     next,
     setCopied,
-    incPatients,
-    decPatients,
     openTnc,
     closeTnc,
     resetOffer,
@@ -340,22 +336,6 @@ const PartnerDashboardInner: React.FC = () => {
                 <span className="flex items-center gap-2">
                   <FaCheckCircle /> Milestone Progress
                 </span>
-              }
-              right={
-                <div className="flex gap-2">
-                  <button
-                    onClick={decPatients}
-                    className="px-3 py-2 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 shadow-sm hover:from-gray-300 hover:to-gray-400 transition"
-                  >
-                    <FaMinus />
-                  </button>
-                  <button
-                    onClick={incPatients}
-                    className="px-3 py-2 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-md hover:from-red-600 hover:to-orange-600 transition"
-                  >
-                    <FaPlus />
-                  </button>
-                </div>
               }
             >
               <MilestoneStepper patients={patients} />

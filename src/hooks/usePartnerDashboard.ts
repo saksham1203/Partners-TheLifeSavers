@@ -272,7 +272,6 @@ export const usePartnerDashboard = () => {
     () => setPatients((p) => Math.max(0, p - 1)),
     []
   );
-  const incPatients = React.useCallback(() => setPatients((p) => p + 1), []);
   const openTnc = React.useCallback(() => setIsTncOpen(true), []);
   const closeTnc = React.useCallback(() => setIsTncOpen(false), []);
 
@@ -301,7 +300,6 @@ export const usePartnerDashboard = () => {
     // actions
     setCopied,
     decPatients,
-    incPatients,
     openTnc,
     closeTnc,
     resetOffer,
