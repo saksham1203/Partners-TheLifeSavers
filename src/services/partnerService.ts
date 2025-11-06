@@ -2,7 +2,9 @@
 import axios from "axios";
 import { Preferences } from "@capacitor/preferences";
 
-/* ------------------------- EXISTING CODE (unchanged) ------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                             EXISTING COMMISSION                            */
+/* -------------------------------------------------------------------------- */
 
 export interface Milestone {
   min: number;
@@ -29,7 +31,8 @@ export const calculateCommission = (totalPatients: number): number => {
 };
 
 export const currentMilestone = (totalPatients: number): Milestone | null =>
-  MILESTONES.find((m) => totalPatients >= m.min && totalPatients <= m.max) ?? null;
+  MILESTONES.find((m) => totalPatients >= m.min && totalPatients <= m.max) ??
+  null;
 
 export const nextMilestone = (totalPatients: number): Milestone | null =>
   MILESTONES.find((m) => totalPatients < m.min) ?? null;
@@ -37,7 +40,8 @@ export const nextMilestone = (totalPatients: number): Milestone | null =>
 export const getMilestoneIndex = (count: number) =>
   MILESTONES.findIndex((m) => count >= m.min && count <= m.max);
 
-const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
+const addDays = (d: Date, days: number) =>
+  new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
 
 export type LoadedPartnerData = {
   promoCode: string;
@@ -45,10 +49,10 @@ export type LoadedPartnerData = {
   offerEnd: Date;
 };
 
-/**
- * Loads promo code and 15-day cycle dates from Capacitor Preferences.
- * Mirrors the logic used in your original component.
- */
+/* -------------------------------------------------------------------------- */
+/*                           LOAD FROM CAPACITOR PREFS                        */
+/* -------------------------------------------------------------------------- */
+
 export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
   try {
     const [{ value: promoValue }, { value: userJson }] = await Promise.all([
@@ -56,7 +60,8 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
       Preferences.get({ key: "user" }),
     ]);
 
-    let promoCode = promoValue && promoValue.length > 0 ? promoValue : DEFAULT_PROMO_CODE;
+    let promoCode =
+      promoValue && promoValue.length > 0 ? promoValue : DEFAULT_PROMO_CODE;
     let offerStart = DEFAULT_CYCLE_START;
     let offerEnd = addDays(DEFAULT_CYCLE_START, DEFAULT_CYCLE_LENGTH_DAYS);
 
@@ -64,13 +69,13 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
       try {
         const user = JSON.parse(userJson);
 
-        // promocode fallback from user object
+        // promo fallback
         if (!promoValue || promoValue.length === 0) {
           if (user?.promocode) promoCode = user.promocode;
           else if (user?.referralCode) promoCode = user.referralCode;
         }
 
-        // derive cycle from createdAt (date-only midnight local)
+        // cycle from createdAt
         if (user?.createdAt) {
           const parsed = new Date(user.createdAt);
           if (!isNaN(parsed.getTime())) {
@@ -80,9 +85,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
             offerEnd = addDays(dateOnly, DEFAULT_CYCLE_LENGTH_DAYS);
           }
         }
-      } catch {
-        // ignore parse errors
-      }
+      } catch {}
     }
 
     return { promoCode, offerStart, offerEnd };
@@ -95,22 +98,21 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
   }
 }
 
-/* ----------------------------- NEW: API LAYER ----------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                API HELPERS                                 */
+/* -------------------------------------------------------------------------- */
 
 const API_BASE = "https://dev-service-thelifesavers-in.onrender.com/api";
 
-/** Try Capacitor Preferences first, then fall back to localStorage (web). */
 async function getAuthToken(): Promise<string | null> {
   try {
     const { value } = await Preferences.get({ key: "token" });
     if (value) return value;
   } catch {}
+
   try {
-    // direct key
     const direct = window?.localStorage?.getItem?.("token");
     if (direct) return direct.replace(/^"|"$/g, "");
-
-    // Capacitor web prefix (varies), find by name
     const key = Object.keys(window?.localStorage ?? {}).find((k) =>
       k.toLowerCase().includes("capacitorstorage:token")
     );
@@ -119,10 +121,13 @@ async function getAuthToken(): Promise<string | null> {
       if (raw) return raw.replace(/^"|"$/g, "");
     }
   } catch {}
+
   return null;
 }
 
-function mapPayoutStatusToPaymentStatus(s?: string): "paid" | "pending" | "unpaid" {
+function mapPayoutStatusToPaymentStatus(
+  s?: string
+): "paid" | "pending" | "unpaid" {
   switch ((s ?? "").toUpperCase()) {
     case "PAID":
       return "paid";
@@ -133,7 +138,9 @@ function mapPayoutStatusToPaymentStatus(s?: string): "paid" | "pending" | "unpai
   }
 }
 
-/* ---------- Types that mirror your backend responses ---------- */
+/* -------------------------------------------------------------------------- */
+/*                              BACKEND TYPES                                 */
+/* -------------------------------------------------------------------------- */
 
 export type BackendTier = { min: number; max: number; rate: number };
 
@@ -159,7 +166,12 @@ export type BackendDashboard = {
   commission: number;
   tier: BackendTier;
   nextTier?: { rate: number; need: number } | null;
-  breakdown: Array<{ range: string; rate: number; count: number; commission: number }>;
+  breakdown: Array<{
+    range: string;
+    rate: number;
+    count: number;
+    commission: number;
+  }>;
   recentReferrals: Array<{
     id: string;
     orderId: string;
@@ -169,6 +181,12 @@ export type BackendDashboard = {
     createdAt: string;
   }>;
   updatedAt: string;
+
+  // Optional bank snapshot fields (added by backend)
+  bankStatus?: "PENDING" | "VERIFIED" | "REJECTED";
+  bankVerifiedAt?: string | null;
+  bankRejectionReason?: string | null;
+  bankLastUpdatedAt?: string | null;
 };
 
 export type BackendCycles = {
@@ -203,29 +221,34 @@ export type BackendReferrals = {
   nextCursor: string | null;
 };
 
-/* ----------------- Public service functions (axios inside) ----------------- */
+/* -------------------------------------------------------------------------- */
+/*                               MAIN API CALLS                               */
+/* -------------------------------------------------------------------------- */
 
-/** GET /partners/me/dashboard */
 export async function fetchPartnerDashboard(): Promise<BackendDashboard> {
   const token = await getAuthToken();
-  const res = await axios.get<BackendDashboard>(`${API_BASE}/partners/me/dashboard`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    withCredentials: true,
-  });
+  const res = await axios.get<BackendDashboard>(
+    `${API_BASE}/partners/me/dashboard`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      withCredentials: true,
+    }
+  );
   return res.data;
 }
 
-/** GET /partners/me/cycles */
 export async function fetchPartnerCycles(): Promise<BackendCycles> {
   const token = await getAuthToken();
-  const res = await axios.get<BackendCycles>(`${API_BASE}/partners/me/cycles`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    withCredentials: true,
-  });
+  const res = await axios.get<BackendCycles>(
+    `${API_BASE}/partners/me/cycles`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      withCredentials: true,
+    }
+  );
   return res.data;
 }
 
-/** GET /partners/me/referrals?limit=5&cursor=... */
 export async function fetchPartnerReferrals(
   limit = 5,
   cursor?: string
@@ -242,11 +265,14 @@ export async function fetchPartnerReferrals(
   return res.data;
 }
 
-/* -------- Helpers to map backend cycles -> UI modal type (history) -------- */
+/* -------------------------------------------------------------------------- */
+/*                        MAP CYCLES → HISTORY MODAL                           */
+/* -------------------------------------------------------------------------- */
 
 export type PaymentStatus = "paid" | "pending" | "unpaid";
+
 export interface CycleHistoryItem {
-  id: string;                 // If backend has no id per cycle, derive from start-end label
+  id: string;
   startDate: string;
   endDate: string;
   totalPatients: number;
@@ -256,8 +282,9 @@ export interface CycleHistoryItem {
   paidAt?: string | null;
 }
 
-/** Map backend cycles to your PartnerHistoryModal items */
-export function mapBackendCyclesToHistoryItems(data: BackendCycles): CycleHistoryItem[] {
+export function mapBackendCyclesToHistoryItems(
+  data: BackendCycles
+): CycleHistoryItem[] {
   return (data.cycles ?? []).map((c) => {
     const payout = c.payout ?? undefined;
     return {
@@ -267,13 +294,12 @@ export function mapBackendCyclesToHistoryItems(data: BackendCycles): CycleHistor
       totalPatients: c.patients,
       totalCommission: c.commission,
       paymentStatus: mapPayoutStatusToPaymentStatus(payout?.status),
-      paymentRef: payout?.note ?? null, // storing UTR/note here; adjust if you add a dedicated field
+      paymentRef: payout?.note ?? null,
       paidAt: payout?.paidAt ?? null,
     };
   });
 }
 
-/** Convenience: returns { promoCode, offerStart, offerEnd } from backend dashboard */
 export async function loadPartnerDataFromAPI(): Promise<LoadedPartnerData> {
   const d = await fetchPartnerDashboard();
   return {
@@ -281,4 +307,56 @@ export async function loadPartnerDataFromAPI(): Promise<LoadedPartnerData> {
     offerStart: new Date(d.cycle.start),
     offerEnd: new Date(d.cycle.end),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            ✅ BANK API (NEW)                               */
+/* -------------------------------------------------------------------------- */
+
+export type BankVerificationStatus = "PENDING" | "VERIFIED" | "REJECTED";
+
+export type BackendBankResponse = {
+  success: boolean;
+  message?: string;
+  bank: null | {
+    holderName: string;
+    accountNoMasked?: string;
+    accountNo?: string; // admin side only
+    ifsc: string;
+    status: BankVerificationStatus;
+    rejectionReason?: string | null;
+    verifiedAt?: string | null;
+    updatedAt?: string | null;
+  };
+};
+
+/** GET /partners/me/bank */
+export async function fetchMyBank(): Promise<BackendBankResponse> {
+  const token = await getAuthToken();
+  const res = await axios.get<BackendBankResponse>(
+    `${API_BASE}/partners/me/bank`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      withCredentials: true,
+    }
+  );
+  return res.data;
+}
+
+/** PUT /partners/me/bank */
+export async function upsertMyBank(input: {
+  holderName: string;
+  accountNo: string;
+  ifsc: string;
+}): Promise<BackendBankResponse> {
+  const token = await getAuthToken();
+  const res = await axios.put<BackendBankResponse>(
+    `${API_BASE}/partners/me/bank`,
+    input,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      withCredentials: true,
+    }
+  );
+  return res.data;
 }

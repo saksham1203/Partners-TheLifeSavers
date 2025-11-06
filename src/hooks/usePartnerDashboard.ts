@@ -15,6 +15,10 @@ import {
   fetchPartnerCycles,
   mapBackendCyclesToHistoryItems,
   loadPartnerDataFromAPI,
+  // Bank API helpers
+  fetchMyBank,
+  upsertMyBank,
+  BackendBankResponse,
 } from "../services/partnerService";
 
 // ------------------- Shared types for history -------------------
@@ -30,6 +34,9 @@ export interface CycleHistoryItem {
   paymentRef?: string | null;
   paidAt?: string | null;
 }
+
+// ------------------- Bank status type (from backend) -------------------
+export type BankVerificationStatus = "PENDING" | "VERIFIED" | "REJECTED";
 
 // ------------------- Countdown helpers -------------------
 const calcTimeLeft = (endTime: number) => {
@@ -74,7 +81,6 @@ const HISTORY_PREFS_KEY = "partner_history";
 
 /**
  * Load history from backend first (live), then prefs fallback, then empty.
- * (Your UI already handles empty gracefully.)
  */
 async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
   // 1) Backend (live)
@@ -104,7 +110,7 @@ async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
     }
   } catch {}
 
-  // 3) Empty fallback (you can keep the old sample if you prefer demo data)
+  // 3) Empty fallback
   return [];
 }
 
@@ -159,6 +165,101 @@ export const usePartnerDashboard = () => {
   const openHistory = React.useCallback(() => setIsHistoryOpen(true), []);
   const closeHistory = React.useCallback(() => setIsHistoryOpen(false), []);
 
+  // 🔔 Bank snapshot from dashboard (lightweight, read-only)
+  const [bankStatus, setBankStatus] = React.useState<BankVerificationStatus>("PENDING");
+  const [bankVerifiedAt, setBankVerifiedAt] = React.useState<string | null>(null);
+  const [bankRejectionReason, setBankRejectionReason] = React.useState<string | null>(null);
+  const [bankLastUpdatedAt, setBankLastUpdatedAt] = React.useState<string | null>(null);
+  const bankNeedsAction = React.useMemo(
+    () => bankStatus === "PENDING" || bankStatus === "REJECTED",
+    [bankStatus]
+  );
+
+  // 🏦 Full bank form state/handlers (for modal)
+  const [bankLoading, setBankLoading] = React.useState(false);
+  const [bankSubmitting, setBankSubmitting] = React.useState(false);
+  const [bankError, setBankError] = React.useState<string | null>(null);
+  const [bankSuccess, setBankSuccess] = React.useState<string | null>(null);
+
+  const [holderName, setHolderName] = React.useState("");
+  const [accountNo, setAccountNo] = React.useState("");
+  const [accountNoMasked, setAccountNoMasked] = React.useState<string>("");
+  const [ifsc, setIfsc] = React.useState("");
+
+  const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/i;
+
+  const validateBank = React.useCallback((): string | null => {
+    if (!holderName.trim()) return "Please enter account holder name.";
+    const ac = accountNo.replace(/\s+/g, "");
+    if (!ac) return "Please enter account number.";
+    if (ac.length < 9 || ac.length > 20) return "Account number must be 9–20 digits.";
+    if (!IFSC_REGEX.test(ifsc.trim())) return "Please enter a valid IFSC (e.g., HDFC0001234).";
+    return null;
+  }, [holderName, accountNo, ifsc]);
+
+  const loadBankDetails = React.useCallback(async () => {
+    setBankError(null);
+    setBankSuccess(null);
+    setBankLoading(true);
+    try {
+      const res: BackendBankResponse = await fetchMyBank();
+      if (res?.bank) {
+        setHolderName(res.bank.holderName || "");
+        setIfsc((res.bank.ifsc || "").toUpperCase());
+        setAccountNoMasked(res.bank.accountNoMasked || "");
+        setAccountNo(""); // never prefill raw number
+        // keep snapshot fields also aligned:
+        setBankStatus((res.bank.status as BankVerificationStatus) || "PENDING");
+        setBankRejectionReason(res.bank.rejectionReason ?? null);
+        setBankVerifiedAt(res.bank.verifiedAt ?? null);
+        setBankLastUpdatedAt(res.bank.updatedAt ?? null);
+      } else {
+        setHolderName("");
+        setIfsc("");
+        setAccountNo("");
+        setAccountNoMasked("");
+      }
+    } catch (e: any) {
+      setBankError(e?.response?.data?.message || "Failed to load bank details");
+    } finally {
+      setBankLoading(false);
+    }
+  }, []);
+
+  const submitBankDetails = React.useCallback(async () => {
+    setBankError(null);
+    setBankSuccess(null);
+    const v = validateBank();
+    if (v) {
+      setBankError(v);
+      return;
+    }
+    setBankSubmitting(true);
+    try {
+      const res = await upsertMyBank({
+        holderName: holderName.trim(),
+        accountNo: accountNo.replace(/\s+/g, ""),
+        ifsc: ifsc.trim().toUpperCase(),
+      });
+      if (res.success) {
+        setBankSuccess(res.message || "Bank details submitted. Awaiting verification.");
+        setAccountNo(""); // clear raw number after save
+        setAccountNoMasked(res.bank?.accountNoMasked || accountNoMasked);
+        // after submission, status resets to pending until admin reviews
+        setBankStatus(res.bank?.status || "PENDING");
+        setBankRejectionReason(res.bank?.rejectionReason ?? null);
+        setBankVerifiedAt(res.bank?.verifiedAt ?? null);
+        setBankLastUpdatedAt(res.bank?.updatedAt ?? null);
+      } else {
+        setBankError(res.message || "Failed to save bank details");
+      }
+    } catch (e: any) {
+      setBankError(e?.response?.data?.message || "Failed to save bank details");
+    } finally {
+      setBankSubmitting(false);
+    }
+  }, [holderName, accountNo, ifsc, accountNoMasked, validateBank]);
+
   // ✅ Refresh function (public)
   const refreshDashboard = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -169,6 +270,16 @@ export const usePartnerDashboard = () => {
       setOfferStart(new Date(d.cycle.start));
       setOfferEnd(new Date(d.cycle.end));
       setPatients(d.patients ?? 0);
+
+      // Bank snapshot from dashboard payload (optional)
+      if (typeof d.bankStatus === "string") {
+        setBankStatus(d.bankStatus as BankVerificationStatus);
+      } else {
+        setBankStatus("PENDING");
+      }
+      setBankVerifiedAt(d.bankVerifiedAt ?? null);
+      setBankRejectionReason(d.bankRejectionReason ?? null);
+      setBankLastUpdatedAt(d.bankLastUpdatedAt ?? null);
 
       // History
       const cycles = await fetchPartnerCycles();
@@ -192,6 +303,12 @@ export const usePartnerDashboard = () => {
       // history fallback
       const cached = await loadPartnerHistory();
       setHistory(cached);
+
+      // bank fallbacks (unknown)
+      setBankStatus("PENDING");
+      setBankVerifiedAt(null);
+      setBankRejectionReason(null);
+      setBankLastUpdatedAt(null);
     } finally {
       setIsRefreshing(false);
     }
@@ -296,6 +413,25 @@ export const usePartnerDashboard = () => {
     // history
     history,
     isHistoryOpen,
+
+    // bank snapshot (header)
+    bankStatus,
+    bankVerifiedAt,
+    bankRejectionReason,
+    bankLastUpdatedAt,
+    bankNeedsAction,
+
+    // bank modal state/handlers
+    bankLoading,
+    bankSubmitting,
+    bankError,
+    bankSuccess,
+    holderName, setHolderName,
+    accountNo, setAccountNo,
+    accountNoMasked,
+    ifsc, setIfsc,
+    loadBankDetails,
+    submitBankDetails,
 
     // actions
     setCopied,
