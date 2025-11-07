@@ -12,8 +12,6 @@ import {
   FaHistory,
   FaSyncAlt,
   FaUniversity,
-  FaClock,
-  FaTimesCircle,
 } from "react-icons/fa";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import Confetti from "react-confetti";
@@ -139,33 +137,6 @@ const MilestoneStepper: React.FC<{ patients: number }> = React.memo(({ patients 
 });
 MilestoneStepper.displayName = "MilestoneStepper";
 
-// ------------------- Status Chip (Bank) -------------------
-function BankStatusChip({
-  status,
-}: {
-  status: "PENDING" | "VERIFIED" | "REJECTED";
-}) {
-  if (status === "VERIFIED") {
-    return (
-      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-800 border border-green-200 text-xs font-semibold">
-        <FaCheckCircle /> Bank Verified
-      </span>
-    );
-  }
-  if (status === "REJECTED") {
-    return (
-      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800 border border-red-200 text-xs font-semibold">
-        <FaTimesCircle /> Bank Rejected
-      </span>
-    );
-  }
-  // Pending
-  return (
-    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200 text-xs font-semibold">
-      <FaClock /> Bank Pending
-    </span>
-  );
-}
 
 // ------------------- Main -------------------
 const PartnerDashboardInner: React.FC = () => {
@@ -206,6 +177,7 @@ const PartnerDashboardInner: React.FC = () => {
     bankError,
     bankSuccess,
     holderName, setHolderName,
+    bankName, setBankName,              // 🔹 NEW
     accountNo, setAccountNo,
     accountNoMasked,
     ifsc, setIfsc,
@@ -215,9 +187,13 @@ const PartnerDashboardInner: React.FC = () => {
 
   // Bank modal state handled here
   const [isBankOpen, setIsBankOpen] = React.useState(false);
-  const openBank = React.useCallback(async () => {
-    await loadBankDetails();
+  const openBank = React.useCallback(() => {
+    // ✅ Open modal immediately
     setIsBankOpen(true);
+
+    // ✅ Trigger loading spinner/skeleton inside modal
+    // (no await → modal won't wait)
+    loadBankDetails();
   }, [loadBankDetails]);
   const closeBank = React.useCallback(() => setIsBankOpen(false), []);
 
@@ -258,7 +234,6 @@ const PartnerDashboardInner: React.FC = () => {
 
           {/* Header actions */}
           <div className="flex flex-wrap justify-center sm:justify-end items-center gap-2">
-            <BankStatusChip status={bankStatus} />
 
             <button
               onClick={openBank}
@@ -556,6 +531,8 @@ const PartnerDashboardInner: React.FC = () => {
         rejectionReasonFromServer={bankRejectionReason ?? undefined}
         holderName={holderName}
         setHolderName={setHolderName}
+        bankName={bankName}                 // 🔹 NEW
+        setBankName={setBankName}           // 🔹 NEW
         accountNo={accountNo}
         setAccountNo={setAccountNo}
         accountNoMasked={accountNoMasked}

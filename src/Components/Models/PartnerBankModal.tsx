@@ -9,6 +9,7 @@ import {
   FaCheckCircle,
   FaClock,
   FaTimesCircle,
+  FaBuilding,
 } from "react-icons/fa";
 
 type Status = "PENDING" | "VERIFIED" | "REJECTED";
@@ -51,6 +52,9 @@ export interface PartnerBankModalProps {
   holderName: string;
   setHolderName: (v: string) => void;
 
+  bankName: string;
+  setBankName: (v: string) => void;
+
   accountNo: string;
   setAccountNo: (v: string) => void;
 
@@ -76,6 +80,9 @@ const PartnerBankModal: React.FC<PartnerBankModalProps> = ({
 
   holderName,
   setHolderName,
+
+  bankName,
+  setBankName,
 
   accountNo,
   setAccountNo,
@@ -111,90 +118,132 @@ const PartnerBankModal: React.FC<PartnerBankModalProps> = ({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* server messages */}
+          {rejectionReasonFromServer && !loading && (
+            <div className="mb-3 text-sm px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700">
+              <FaInfoCircle className="inline mr-1" />
+              <strong>Rejected:</strong> {rejectionReasonFromServer}
+            </div>
+          )}
+          {success && !loading && (
+            <div className="mb-3 text-sm px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700">
+              <FaCheckCircle className="inline mr-1" />
+              {success}
+            </div>
+          )}
+          {error && !loading && (
+            <div className="mb-3 text-sm px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700">
+              <FaTimesCircle className="inline mr-1" />
+              {error}
+            </div>
+          )}
+
+          {/* Skeleton or Form */}
           {loading ? (
-            <div className="text-sm text-gray-500">Loading…</div>
-          ) : (
-            <>
-              {rejectionReasonFromServer && (
-                <div className="mb-3 text-sm px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700">
-                  <FaInfoCircle className="inline mr-1" />
-                  <strong>Rejected:</strong> {rejectionReasonFromServer}
-                </div>
-              )}
-
-              {success && (
-                <div className="mb-3 text-sm px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700">
-                  <FaCheckCircle className="inline mr-1" />
-                  {success}
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-3 text-sm px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700">
-                  <FaTimesCircle className="inline mr-1" />
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <label className="block">
-                  <span className="text-xs text-gray-600">Account Holder Name</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <FaIdCard className="text-gray-400" />
-                    <input
-                      type="text"
-                      className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
-                      placeholder="e.g., Ramesh Kumar"
-                      value={holderName}
-                      onChange={(e) => setHolderName(e.target.value)}
-                    />
-                  </div>
-                </label>
-
-                <label className="block">
-                  <span className="text-xs text-gray-600">
-                    Account Number{" "}
-                    {accountNoMasked ? (
-                      <em className="text-gray-400">(saved: {accountNoMasked})</em>
-                    ) : null}
-                  </span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <FaHashtag className="text-gray-400" />
-                    <input
-                      type="text"
-                      className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
-                      placeholder="Enter full account number"
-                      value={accountNo}
-                      onChange={(e) => setAccountNo(e.target.value)}
-                    />
-                  </div>
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    For security, please re-enter the complete number when updating.
-                  </p>
-                </label>
-
-                <label className="block">
-                  <span className="text-xs text-gray-600">IFSC</span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <FaUniversity className="text-gray-400" />
-                    <input
-                      type="text"
-                      className="flex-1 rounded-lg border px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-red-300"
-                      placeholder="HDFC0001234"
-                      value={ifsc}
-                      onChange={(e) => setIfsc(e.target.value)}
-                    />
-                  </div>
-                </label>
-
-                <div className="text-[11px] text-gray-500 mt-1 flex items-start gap-2">
-                  <FaInfoCircle className="mt-0.5" />
-                  <span>
-                    Submitting changes sets status to <strong>Pending</strong> until a SuperAdmin verifies.
-                  </span>
-                </div>
+            // ---- Skeleton loader ----
+            <div className="animate-pulse space-y-4">
+              {/* Holder Name */}
+              <div className="space-y-2">
+                <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded-lg"></div>
               </div>
-            </>
+              {/* Bank Name */}
+              <div className="space-y-2">
+                <div className="h-3 w-28 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded-lg"></div>
+              </div>
+              {/* Account Number */}
+              <div className="space-y-2">
+                <div className="h-3 w-40 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded-lg"></div>
+                <div className="h-3 w-64 bg-gray-200 rounded"></div>
+              </div>
+              {/* IFSC */}
+              <div className="space-y-2">
+                <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded-lg"></div>
+              </div>
+              {/* Info text */}
+              <div className="h-3 w-56 bg-gray-200 rounded"></div>
+            </div>
+          ) : (
+            // ---- Form ----
+            <div className="space-y-3">
+              {/* Holder Name */}
+              <label className="block">
+                <span className="text-xs text-gray-600">Account Holder Name</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <FaIdCard className="text-gray-400" />
+                  <input
+                    type="text"
+                    className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
+                    placeholder="e.g., Ramesh Kumar"
+                    value={holderName}
+                    onChange={(e) => setHolderName(e.target.value)}
+                  />
+                </div>
+              </label>
+
+              {/* Bank Name */}
+              <label className="block">
+                <span className="text-xs text-gray-600">Bank Name</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <FaBuilding className="text-gray-400" />
+                  <input
+                    type="text"
+                    className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
+                    placeholder="e.g., HDFC Bank"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                  />
+                </div>
+              </label>
+
+              {/* Account Number */}
+              <label className="block">
+                <span className="text-xs text-gray-600">
+                  Account Number{" "}
+                  {accountNoMasked ? (
+                    <em className="text-gray-400">(saved: {accountNoMasked})</em>
+                  ) : null}
+                </span>
+                <div className="mt-1 flex items-center gap-2">
+                  <FaHashtag className="text-gray-400" />
+                  <input
+                    type="text"
+                    className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
+                    placeholder="Enter full account number"
+                    value={accountNo}
+                    onChange={(e) => setAccountNo(e.target.value)}
+                  />
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  For security, please re-enter the complete number when updating.
+                </p>
+              </label>
+
+              {/* IFSC */}
+              <label className="block">
+                <span className="text-xs text-gray-600">IFSC</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <FaUniversity className="text-gray-400" />
+                  <input
+                    type="text"
+                    className="flex-1 rounded-lg border px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-red-300"
+                    placeholder="HDFC0001234"
+                    value={ifsc}
+                    onChange={(e) => setIfsc(e.target.value)}
+                  />
+                </div>
+              </label>
+
+              <div className="text-[11px] text-gray-500 mt-1 flex items-start gap-2">
+                <FaInfoCircle className="mt-0.5" />
+                <span>
+                  Submitting changes sets status to <strong>Pending</strong> until a SuperAdmin verifies.
+                </span>
+              </div>
+            </div>
           )}
         </div>
 
@@ -209,12 +258,12 @@ const PartnerBankModal: React.FC<PartnerBankModalProps> = ({
           </button>
           <button
             onClick={onSubmit}
-            disabled={submitting}
+            disabled={submitting || loading}
             className={`rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow ${
-              submitting ? "opacity-70 cursor-wait" : "hover:bg-red-700"
+              submitting || loading ? "opacity-70 cursor-wait" : "hover:bg-red-700"
             }`}
           >
-            {submitting ? "Saving..." : "Save"}
+            {submitting ? "Saving..." : loading ? "Loading..." : "Save"}
           </button>
         </div>
       </div>

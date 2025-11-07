@@ -182,6 +182,7 @@ export const usePartnerDashboard = () => {
   const [bankSuccess, setBankSuccess] = React.useState<string | null>(null);
 
   const [holderName, setHolderName] = React.useState("");
+  const [bankName, setBankName] = React.useState("");           // 🔹 NEW
   const [accountNo, setAccountNo] = React.useState("");
   const [accountNoMasked, setAccountNoMasked] = React.useState<string>("");
   const [ifsc, setIfsc] = React.useState("");
@@ -190,12 +191,13 @@ export const usePartnerDashboard = () => {
 
   const validateBank = React.useCallback((): string | null => {
     if (!holderName.trim()) return "Please enter account holder name.";
+    if (!bankName.trim() || bankName.trim().length < 2) return "Please enter bank name.";
     const ac = accountNo.replace(/\s+/g, "");
     if (!ac) return "Please enter account number.";
     if (ac.length < 9 || ac.length > 20) return "Account number must be 9–20 digits.";
     if (!IFSC_REGEX.test(ifsc.trim())) return "Please enter a valid IFSC (e.g., HDFC0001234).";
     return null;
-  }, [holderName, accountNo, ifsc]);
+  }, [holderName, bankName, accountNo, ifsc]);
 
   const loadBankDetails = React.useCallback(async () => {
     setBankError(null);
@@ -205,6 +207,7 @@ export const usePartnerDashboard = () => {
       const res: BackendBankResponse = await fetchMyBank();
       if (res?.bank) {
         setHolderName(res.bank.holderName || "");
+        setBankName((res.bank as any).bankName || ""); // tolerant during migration
         setIfsc((res.bank.ifsc || "").toUpperCase());
         setAccountNoMasked(res.bank.accountNoMasked || "");
         setAccountNo(""); // never prefill raw number
@@ -215,6 +218,7 @@ export const usePartnerDashboard = () => {
         setBankLastUpdatedAt(res.bank.updatedAt ?? null);
       } else {
         setHolderName("");
+        setBankName("");
         setIfsc("");
         setAccountNo("");
         setAccountNoMasked("");
@@ -238,6 +242,7 @@ export const usePartnerDashboard = () => {
     try {
       const res = await upsertMyBank({
         holderName: holderName.trim(),
+        bankName: bankName.trim(),                       // 🔹 pass bankName
         accountNo: accountNo.replace(/\s+/g, ""),
         ifsc: ifsc.trim().toUpperCase(),
       });
@@ -245,7 +250,6 @@ export const usePartnerDashboard = () => {
         setBankSuccess(res.message || "Bank details submitted. Awaiting verification.");
         setAccountNo(""); // clear raw number after save
         setAccountNoMasked(res.bank?.accountNoMasked || accountNoMasked);
-        // after submission, status resets to pending until admin reviews
         setBankStatus(res.bank?.status || "PENDING");
         setBankRejectionReason(res.bank?.rejectionReason ?? null);
         setBankVerifiedAt(res.bank?.verifiedAt ?? null);
@@ -258,7 +262,7 @@ export const usePartnerDashboard = () => {
     } finally {
       setBankSubmitting(false);
     }
-  }, [holderName, accountNo, ifsc, accountNoMasked, validateBank]);
+  }, [holderName, bankName, accountNo, ifsc, accountNoMasked, validateBank]);
 
   // ✅ Refresh function (public)
   const refreshDashboard = React.useCallback(async () => {
@@ -427,6 +431,7 @@ export const usePartnerDashboard = () => {
     bankError,
     bankSuccess,
     holderName, setHolderName,
+    bankName, setBankName,                // 🔹 expose bankName
     accountNo, setAccountNo,
     accountNoMasked,
     ifsc, setIfsc,

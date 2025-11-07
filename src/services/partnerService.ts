@@ -310,7 +310,7 @@ export async function loadPartnerDataFromAPI(): Promise<LoadedPartnerData> {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                            ✅ BANK API (NEW)                               */
+/*                            ✅ BANK API (UPDATED)                            */
 /* -------------------------------------------------------------------------- */
 
 export type BankVerificationStatus = "PENDING" | "VERIFIED" | "REJECTED";
@@ -320,6 +320,7 @@ export type BackendBankResponse = {
   message?: string;
   bank: null | {
     holderName: string;
+    bankName?: string | null;          // <- added
     accountNoMasked?: string;
     accountNo?: string; // admin side only
     ifsc: string;
@@ -346,13 +347,20 @@ export async function fetchMyBank(): Promise<BackendBankResponse> {
 /** PUT /partners/me/bank */
 export async function upsertMyBank(input: {
   holderName: string;
+  bankName: string;           // <- added
   accountNo: string;
   ifsc: string;
 }): Promise<BackendBankResponse> {
   const token = await getAuthToken();
+  const payload = {
+    holderName: input.holderName?.trim(),
+    bankName: input.bankName?.trim(),
+    accountNo: String(input.accountNo ?? "").trim(),
+    ifsc: String(input.ifsc ?? "").trim().toUpperCase(),
+  };
   const res = await axios.put<BackendBankResponse>(
     `${API_BASE}/partners/me/bank`,
-    input,
+    payload,
     {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       withCredentials: true,
