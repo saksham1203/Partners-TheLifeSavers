@@ -17,6 +17,7 @@ const AboutUs = lazy(() => import("./pages/AboutUs/AboutUs"));
 const TermsAndConditions = lazy(() =>
   import("./pages/TermsAndConditions/TermsAndConditions")
 );
+const Pricings = lazy(() => import("./pages/Pricings/Pricings"));
 const Blogs = lazy(() => import("./pages/Blogs/Blogs"));
 // const BlogDetail = lazy(() => import("./pages/BlogDetail/BlogDetail")); // Blog detail page
 const BlogDetail = lazy(()=> import('./pages/BlogDetail/BlogDetail'))
@@ -45,6 +46,7 @@ const PATHS = {
   ABOUT_US: "/about-us",
   TERMS: "/terms-and-conditions",
   PRIVACY_POLICY: "/privacy-policy",
+  PRICINGS: "/pricings",
   BLOGS: "/blogs",
   BLOG_DETAIL: "/blogs/:title", // Dynamic path for blog detail
   CONTACT_US: "/contact-us", // New path for ContactUs page
@@ -106,6 +108,20 @@ const App = () => {
               element: (
                 <Suspense fallback={<div>Loading...</div>}>
                   <Dashboard />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+        {
+          path: PATHS.PRICINGS,
+          element: <ProtectedRoute />,
+          children: [
+            {
+              path: PATHS.PRICINGS,
+              element: (
+                <Suspense fallback={<div>Loading...</div>}>
+                  <Pricings />
                 </Suspense>
               ),
             },

@@ -207,6 +207,11 @@ const Header: React.FC = () => {
                 label: "Dashboard",
               },
               {
+                to: "/pricings",
+                icon: <FaBook className="mr-2 text-xl" />,
+                label: "Pricings",
+              },
+              {
                 to: "/blogs",
                 icon: <FaBook className="mr-2 text-xl" />,
                 label: "Blogs",
