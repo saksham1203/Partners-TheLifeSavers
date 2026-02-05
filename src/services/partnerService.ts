@@ -102,7 +102,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
 /*                                API HELPERS                                 */
 /* -------------------------------------------------------------------------- */
 
-const API_BASE = "https://dev-service-thelifesavers-in.onrender.com/api";
+const API_BASE = "https://service.thelifesavers.in/api";
 
 async function getAuthToken(): Promise<string | null> {
   try {

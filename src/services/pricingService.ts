@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Preferences } from "@capacitor/preferences";
 
-const API_BASE = "http://localhost:5000/api/partner/pricing";
+const API_BASE = "https://service.thelifesavers.in/api/partner/pricing";
 
 /* ---------------- Types ---------------- */
 export type LabType = "thyrocare" | "healthians" | "dr_mittal";
