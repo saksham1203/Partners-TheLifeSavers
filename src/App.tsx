@@ -18,6 +18,8 @@ const TermsAndConditions = lazy(() =>
   import("./pages/TermsAndConditions/TermsAndConditions")
 );
 const Pricings = lazy(() => import("./pages/Pricings/Pricings"));
+const PartnersOrders = lazy(() => import("./pages/PartnersOrders/PartnersOrders"));
+const PartnersOrdersAdmin = lazy(() => import("./pages/PartnersOrdersAdmin/PartnersOrdersAdmin.tsx"));
 const Blogs = lazy(() => import("./pages/Blogs/Blogs"));
 // const BlogDetail = lazy(() => import("./pages/BlogDetail/BlogDetail")); // Blog detail page
 const BlogDetail = lazy(()=> import('./pages/BlogDetail/BlogDetail'))
@@ -47,6 +49,8 @@ const PATHS = {
   TERMS: "/terms-and-conditions",
   PRIVACY_POLICY: "/privacy-policy",
   PRICINGS: "/pricings",
+  PARTNERS_ORDERS: "/partners-orders",
+  PARTNERS_PARTNERS_ORDERS_ADMIN: "/partners-orders-admin",
   BLOGS: "/blogs",
   BLOG_DETAIL: "/blogs/:title", // Dynamic path for blog detail
   CONTACT_US: "/contact-us", // New path for ContactUs page
@@ -122,6 +126,34 @@ const App = () => {
               element: (
                 <Suspense fallback={<div>Loading...</div>}>
                   <Pricings />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+        {
+          path: PATHS.PARTNERS_ORDERS,
+          element: <ProtectedRoute />,
+          children: [
+            {
+              path: PATHS.PARTNERS_ORDERS,
+              element: (
+                <Suspense fallback={<div>Loading...</div>}>
+                  <PartnersOrders />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+        {
+          path: PATHS.PARTNERS_PARTNERS_ORDERS_ADMIN,
+          element: <ProtectedRoute />,
+          children: [
+            {
+              path: PATHS.PARTNERS_PARTNERS_ORDERS_ADMIN,
+              element: (
+                <Suspense fallback={<div>Loading...</div>}>
+                  <PartnersOrdersAdmin />
                 </Suspense>
               ),
             },

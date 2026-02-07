@@ -13,6 +13,8 @@ import {
   FaEnvelope,
   FaTint,
   FaUserPlus,
+  FaClipboardList,
+  FaUserCog,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../Context/AuthContext";
@@ -210,6 +212,16 @@ const Header: React.FC = () => {
                 to: "/pricings",
                 icon: <FaBook className="mr-2 text-xl" />,
                 label: "Pricings",
+              },
+              {
+                to: "/partners-orders",
+                icon: <FaClipboardList className="mr-2 text-xl" />,
+                label: "Orders",
+              },
+              {
+                to: "/partners-orders-admin",
+                icon: <FaUserCog className="mr-2 text-xl" />,
+                label: "Admin partners order manager",
               },
               {
                 to: "/blogs",
