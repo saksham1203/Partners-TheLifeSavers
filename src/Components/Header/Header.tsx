@@ -216,7 +216,7 @@ const Header: React.FC = () => {
               {
                 to: "/partners-orders",
                 icon: <FaClipboardList className="mr-2 text-xl" />,
-                label: "Orders",
+                label: "Your Orders",
               },
               {
                 to: "/partners-orders-admin",
