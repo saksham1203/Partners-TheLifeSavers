@@ -4,18 +4,14 @@ import { Preferences } from "@capacitor/preferences";
 const API_BASE = "https://services.thelifesavers.in/api/partner/pricing";
 
 /* ---------------- Types ---------------- */
+
 export type LabType = "thyrocare" | "healthians" | "dr_mittal";
 
 export interface PricingItem {
-  id: string;
-  lab: LabType;
-  partnerType: "chemist" | "clinic" | "gym";
   name: string;
-  b2bPrice: number;
-  b2cPrice: number;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
+  mrp: number;     // B2C
+  b2p: number;     // Partner price
+  margin: number;  // earning
 }
 
 type PricingResponse = {
@@ -24,6 +20,7 @@ type PricingResponse = {
 };
 
 /* ---------------- Token Helper ---------------- */
+
 async function getAuthToken(): Promise<string | null> {
   try {
     const { value } = await Preferences.get({ key: "token" });

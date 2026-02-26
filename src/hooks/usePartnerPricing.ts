@@ -7,7 +7,6 @@ import {
 } from "../services/pricingService";
 
 type ItemType = "test" | "package";
-
 type CacheKey = `${LabType}_${ItemType}`;
 
 export function usePartnerPricing(lab: LabType) {
@@ -17,15 +16,16 @@ export function usePartnerPricing(lab: LabType) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🧠 in-memory cache
+  // ✅ memory cache
   const cacheRef = useRef<Partial<Record<CacheKey, PricingItem[]>>>({});
 
   const loadPricing = useCallback(
     async (force = false) => {
       const key = `${lab}_${type}` as CacheKey;
 
+      // ✅ serve cached data
       if (!force && cacheRef.current[key]) {
-        setItems(cacheRef.current[key]);
+        setItems(cacheRef.current[key]!);
         return;
       }
 
@@ -38,6 +38,7 @@ export function usePartnerPricing(lab: LabType) {
             ? await fetchPricingTests(lab)
             : await fetchPricingPackages(lab);
 
+        // ✅ keep backend order exactly
         cacheRef.current[key] = data;
         setItems(data);
       } catch {
@@ -53,12 +54,16 @@ export function usePartnerPricing(lab: LabType) {
     loadPricing();
   }, [loadPricing]);
 
+  /**
+   * ✅ FILTER ONLY (NO SORTING)
+   * preserves API order
+   */
   const filteredItems = useMemo(() => {
-    return items
-      .filter((i) =>
-        i.name.toLowerCase().includes(search.toLowerCase())
-      )
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    if (!search.trim()) return items;
+
+    return items.filter((i) =>
+      i.name.toLowerCase().includes(search.toLowerCase())
+    );
   }, [items, search]);
 
   return {
@@ -69,6 +74,6 @@ export function usePartnerPricing(lab: LabType) {
     error,
     search,
     setSearch,
-    reload: () => loadPricing(true), // 👈 force refresh
+    reload: () => loadPricing(true),
   };
 }

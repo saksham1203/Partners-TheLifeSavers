@@ -8,7 +8,7 @@ import PartnerBookingModal, {
 } from "../../Components/Partner/PartnerBookingModal";
 
 /* ---------------------------------------------
-   Helper: get partner promo code from storage
+   Helper: get partner promo code
 ---------------------------------------------- */
 const getPartnerPromoCode = (): string => {
   try {
@@ -28,9 +28,7 @@ const getPartnerPromoCode = (): string => {
 const Pricing: React.FC = () => {
   const navigate = useNavigate();
 
-  /* ---------------------------------------------
-     State
-  ---------------------------------------------- */
+  /* ---------------- State ---------------- */
   const [activeLab, setActiveLab] = useState<LabType>("thyrocare");
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
@@ -39,28 +37,24 @@ const Pricing: React.FC = () => {
   const { type, setType, items, loading, error, search, setSearch } =
     usePartnerPricing(activeLab);
 
-  /* ---------------------------------------------
-     Load partner promo code once
-  ---------------------------------------------- */
+  /* ---------------- Load promo code ---------------- */
   useEffect(() => {
     setPartnerPromoCode(getPartnerPromoCode());
   }, []);
 
-  /* ---------------------------------------------
-     Row click → add item & open modal
-  ---------------------------------------------- */
+  /* ---------------- Row Click ---------------- */
   const openBookingModal = (item: any) => {
     setSelectedItems((prev) => {
-      if (prev.some((p) => p.id === item.id)) return prev;
+      if (prev.some((p) => p.id === item.name)) return prev;
 
       return [
         ...prev,
         {
-          id: item.id,
+          id: item.name, // ✅ name as unique id
           name: item.name,
           type,
-          b2pPrice: item.b2bPrice,
-          b2cPrice: item.b2cPrice,
+          b2pPrice: item.b2p,
+          b2cPrice: item.mrp,
         },
       ];
     });
@@ -68,12 +62,11 @@ const Pricing: React.FC = () => {
     setIsBookingOpen(true);
   };
 
-  /* ---------------------------------------------
-     UI
-  ---------------------------------------------- */
+  /* ---------------- UI ---------------- */
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center p-6 pt-16 mb-8">
       <div className="bg-white rounded-2xl shadow-xl max-w-6xl w-full overflow-hidden">
+
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-400 text-white text-center py-8 px-6 relative">
           <button
@@ -82,23 +75,26 @@ const Pricing: React.FC = () => {
           >
             <FaArrowLeft />
           </button>
+
           <h1 className="text-3xl font-bold tracking-tight">
             Partner Pricing
           </h1>
+
           <p className="mt-2 text-sm opacity-90">
-            B2P, B2C & potential earnings
+            B2P pricing & partner earnings
           </p>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-6">
+
           {/* Labs */}
-          <div className="flex justify-center gap-3 sm:gap-4 flex-wrap">
+          <div className="flex justify-center gap-3 flex-wrap">
             {["thyrocare", "healthians", "dr_mittal"].map((lab) => (
               <button
                 key={lab}
                 onClick={() => setActiveLab(lab as LabType)}
-                className={`px-4 py-2 sm:px-6 sm:py-2.5 rounded-full text-sm sm:text-base font-semibold transition-all ${
+                className={`px-5 py-2 rounded-full font-semibold transition ${
                   activeLab === lab
                     ? "bg-red-600 text-white shadow-md scale-105"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -115,14 +111,15 @@ const Pricing: React.FC = () => {
           </div>
 
           {/* Controls */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-between items-center">
-            {/* Test / Package */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+
+            {/* Type */}
             <div className="flex gap-2">
               <button
                 onClick={() => setType("test")}
-                className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold transition ${
+                className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold ${
                   type === "test"
-                    ? "bg-red-500 text-white shadow"
+                    ? "bg-red-500 text-white"
                     : "bg-gray-100 text-gray-700"
                 }`}
               >
@@ -132,9 +129,9 @@ const Pricing: React.FC = () => {
 
               <button
                 onClick={() => setType("package")}
-                className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold transition ${
+                className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold ${
                   type === "package"
-                    ? "bg-red-500 text-white shadow"
+                    ? "bg-red-500 text-white"
                     : "bg-gray-100 text-gray-700"
                 }`}
               >
@@ -150,27 +147,26 @@ const Pricing: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search test or package"
-                className="w-full pl-10 pr-4 py-2 text-sm border rounded-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="w-full pl-10 pr-4 py-2 text-sm border rounded-full focus:ring-2 focus:ring-red-400"
               />
             </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto border rounded-xl bg-white">
+          <div className="overflow-x-auto border rounded-xl">
             <table className="w-full text-sm">
-              <thead className="bg-gray-100 sticky top-0 z-10">
+
+              <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs uppercase text-gray-600">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase text-gray-600">
+                  <th className="px-4 py-3 text-left text-xs uppercase">Name</th>
+                  <th className="px-4 py-3 text-right text-xs uppercase">
                     B2P Price
                   </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase text-gray-600">
-                    B2C Price
+                  <th className="px-4 py-3 text-right text-xs uppercase">
+                    MRP
                   </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase text-gray-600">
-                    Margin (up to)
+                  <th className="px-4 py-3 text-right text-xs uppercase">
+                    Margin
                   </th>
                 </tr>
               </thead>
@@ -178,16 +174,8 @@ const Pricing: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="relative h-10 w-10">
-                          <div className="absolute inset-0 rounded-full border-4 border-red-200" />
-                          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-red-600 animate-spin" />
-                        </div>
-                        <span className="text-sm font-semibold text-red-600">
-                          Loading pricing…
-                        </span>
-                      </div>
+                    <td colSpan={4} className="py-12 text-center text-red-600">
+                      Loading pricing…
                     </td>
                   </tr>
                 ) : error ? (
@@ -204,33 +192,35 @@ const Pricing: React.FC = () => {
                   </tr>
                 ) : (
                   items.map((i) => {
-                    const margin = i.b2cPrice - i.b2bPrice;
                     const isSelected = selectedItems.some(
-                      (s) => s.id === i.id,
+                      (s) => s.id === i.name
                     );
 
                     return (
                       <tr
-                        key={i.id}
+                        key={i.name}
                         onClick={() => openBookingModal(i)}
-                        className={`border-t cursor-pointer transition-colors ${
+                        className={`border-t cursor-pointer ${
                           isSelected
                             ? "bg-red-50"
                             : "hover:bg-red-50"
                         }`}
                       >
-                        <td className="px-4 py-3 font-semibold text-gray-800">
+                        <td className="px-4 py-3 font-semibold">
                           {i.name}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-600">
-                          ₹{i.b2bPrice}
+
+                        <td className="px-4 py-3 text-right text-gray-700">
+                          ₹{i.b2p}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                          ₹{i.b2cPrice}
+
+                        <td className="px-4 py-3 text-right font-semibold">
+                          ₹{i.mrp}
                         </td>
+
                         <td className="px-4 py-3 text-right">
-                          <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
-                            ↑ ₹{margin}
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                            ↑ ₹{i.margin}
                           </span>
                         </td>
                       </tr>
@@ -238,6 +228,7 @@ const Pricing: React.FC = () => {
                   })
                 )}
               </tbody>
+
             </table>
           </div>
         </div>
