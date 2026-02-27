@@ -1,72 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FaArrowLeft, FaBox, FaFlask, FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { usePartnerPricing } from "../../hooks/usePartnerPricing";
 import { LabType } from "../../services/pricingService";
-import PartnerBookingModal, {
-  SelectedItem,
-} from "../../Components/Partner/PartnerBookingModal";
-
-/* ---------------------------------------------
-   Helper: get partner promo code
----------------------------------------------- */
-const getPartnerPromoCode = (): string => {
-  try {
-    const raw =
-      localStorage.getItem("user") ||
-      localStorage.getItem("CapacitorStorage.user");
-
-    if (!raw) return "";
-
-    const parsed = JSON.parse(raw);
-    return parsed?.referralCode || "";
-  } catch {
-    return "";
-  }
-};
 
 const Pricing: React.FC = () => {
   const navigate = useNavigate();
 
   /* ---------------- State ---------------- */
   const [activeLab, setActiveLab] = useState<LabType>("thyrocare");
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
-  const [partnerPromoCode, setPartnerPromoCode] = useState("");
 
   const { type, setType, items, loading, error, search, setSearch } =
     usePartnerPricing(activeLab);
 
-  /* ---------------- Load promo code ---------------- */
-  useEffect(() => {
-    setPartnerPromoCode(getPartnerPromoCode());
-  }, []);
-
-  /* ---------------- Row Click ---------------- */
-  const openBookingModal = (item: any) => {
-    setSelectedItems((prev) => {
-      if (prev.some((p) => p.id === item.name)) return prev;
-
-      return [
-        ...prev,
-        {
-          id: item.name, // ✅ name as unique id
-          name: item.name,
-          type,
-          b2pPrice: item.b2p,
-          b2cPrice: item.mrp,
-        },
-      ];
-    });
-
-    setIsBookingOpen(true);
-  };
-
-  /* ---------------- UI ---------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center p-6 pt-16 mb-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center p-4 sm:p-6 pt-20 sm:pt-24 lg:pt-20 mb-8">
       <div className="bg-white rounded-2xl shadow-xl max-w-6xl w-full overflow-hidden">
-
+        
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 via-red-500 to-red-400 text-white text-center py-8 px-6 relative">
           <button
@@ -76,7 +26,7 @@ const Pricing: React.FC = () => {
             <FaArrowLeft />
           </button>
 
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Partner Pricing
           </h1>
 
@@ -86,15 +36,15 @@ const Pricing: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-
+        <div className="p-4 sm:p-6 space-y-6">
+          
           {/* Labs */}
           <div className="flex justify-center gap-3 flex-wrap">
             {["thyrocare", "healthians", "dr_mittal"].map((lab) => (
               <button
                 key={lab}
                 onClick={() => setActiveLab(lab as LabType)}
-                className={`px-5 py-2 rounded-full font-semibold transition ${
+                className={`px-4 sm:px-5 py-2 rounded-full font-semibold transition ${
                   activeLab === lab
                     ? "bg-red-600 text-white shadow-md scale-105"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -112,8 +62,8 @@ const Pricing: React.FC = () => {
 
           {/* Controls */}
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-
-            {/* Type */}
+            
+            {/* Type Toggle */}
             <div className="flex gap-2">
               <button
                 onClick={() => setType("test")}
@@ -153,95 +103,95 @@ const Pricing: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto border rounded-xl">
-            <table className="w-full text-sm">
-
-              <thead className="bg-gray-100">
+          <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
+            <table className="w-full text-xs sm:text-sm border-collapse">
+              
+              <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs uppercase">Name</th>
-                  <th className="px-4 py-3 text-right text-xs uppercase">
-                    B2P Price
+                  <th className="px-3 sm:px-4 py-3 text-left uppercase tracking-wide">
+                    Name
                   </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase">
+                  <th className="px-3 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
                     MRP
                   </th>
-                  <th className="px-4 py-3 text-right text-xs uppercase">
+                  <th className="px-3 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
+                    B2P
+                  </th>
+                  <th className="px-3 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
                     Margin
                   </th>
                 </tr>
               </thead>
 
-              <tbody>
-                {loading ? (
+              <tbody className="divide-y divide-gray-200">
+                
+                {/* ✅ Loading */}
+                {loading && (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-red-600">
-                      Loading pricing…
+                    <td colSpan={4} className="py-10 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="h-8 w-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin" />
+                        <span className="text-sm font-semibold text-red-600">
+                          Loading pricing…
+                        </span>
+                      </div>
                     </td>
                   </tr>
-                ) : error ? (
+                )}
+
+                {/* ✅ Error */}
+                {!loading && error && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-red-500">
+                    <td
+                      colSpan={4}
+                      className="py-8 text-center text-red-500 font-medium"
+                    >
                       {error}
                     </td>
                   </tr>
-                ) : items.length === 0 ? (
+                )}
+
+                {/* ✅ Empty State */}
+                {!loading && !error && items.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-400">
+                    <td
+                      colSpan={4}
+                      className="py-8 text-center text-gray-400"
+                    >
                       No pricing available
                     </td>
                   </tr>
-                ) : (
-                  items.map((i) => {
-                    const isSelected = selectedItems.some(
-                      (s) => s.id === i.name
-                    );
-
-                    return (
-                      <tr
-                        key={i.name}
-                        onClick={() => openBookingModal(i)}
-                        className={`border-t cursor-pointer ${
-                          isSelected
-                            ? "bg-red-50"
-                            : "hover:bg-red-50"
-                        }`}
-                      >
-                        <td className="px-4 py-3 font-semibold">
-                          {i.name}
-                        </td>
-
-                        <td className="px-4 py-3 text-right text-gray-700">
-                          ₹{i.b2p}
-                        </td>
-
-                        <td className="px-4 py-3 text-right font-semibold">
-                          ₹{i.mrp}
-                        </td>
-
-                        <td className="px-4 py-3 text-right">
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
-                            ↑ ₹{i.margin}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
                 )}
-              </tbody>
 
+                {/* ✅ Data */}
+                {!loading &&
+                  !error &&
+                  items.map((i) => (
+                    <tr key={i.name} className="hover:bg-gray-50 transition">
+                      <td className="px-3 sm:px-4 py-3 font-medium text-gray-800 break-words">
+                        {i.name}
+                      </td>
+
+                      <td className="px-3 sm:px-4 py-3 text-right font-semibold whitespace-nowrap">
+                        ₹{i.mrp}
+                      </td>
+
+                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                        ₹{i.b2p}
+                      </td>
+
+                      <td className="px-3 sm:px-4 py-3 text-right">
+                        <span className="inline-flex items-center justify-center px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
+                          ₹{i.margin}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
             </table>
           </div>
         </div>
       </div>
-
-      {/* Booking Modal */}
-      <PartnerBookingModal
-        isOpen={isBookingOpen}
-        selectedItems={selectedItems}
-        setSelectedItems={setSelectedItems}
-        partnerPromoCode={partnerPromoCode}
-        onClose={() => setIsBookingOpen(false)}
-      />
     </div>
   );
 };
