@@ -3,42 +3,51 @@ import axios from "axios";
 import { Preferences } from "@capacitor/preferences";
 
 /* -------------------------------------------------------------------------- */
-/*                             EXISTING COMMISSION                            */
+/*                        REVENUE BONUS SLAB STEPPER                          */
 /* -------------------------------------------------------------------------- */
 
 export interface Milestone {
   min: number;
   max: number;
-  rate: number;
+  rate: number; // now represents BONUS %
 }
 
+/**
+ * We keep same stepper structure,
+ * but now it represents revenue bonus %
+ */
 export const MILESTONES: Milestone[] = [
-  { min: 0, max: 5, rate: 50 },
-  { min: 6, max: 10, rate: 75 },
-  { min: 11, max: Number.POSITIVE_INFINITY, rate: 100 },
+  { min: 0, max: 4999, rate: 0 },
+  { min: 5000, max: 7999, rate: 5 },
+  { min: 8000, max: 9999, rate: 8 },
+  { min: 10000, max: Number.POSITIVE_INFINITY, rate: 10 },
 ];
 
 export const DEFAULT_PROMO_CODE = "LSAVE123";
-export const DEFAULT_CYCLE_LENGTH_DAYS = 15;
+
+/**
+ * Cycle length is now controlled fully by backend (7 days).
+ * These defaults are only fallback values.
+ */
+export const DEFAULT_CYCLE_LENGTH_DAYS = 7;
 export const DEFAULT_CYCLE_START = new Date("2025-09-01T00:00:00");
 
-export const calculateCommission = (totalPatients: number): number => {
-  if (totalPatients <= 0) return 0;
-  const milestone = MILESTONES.find(
-    (m) => totalPatients >= m.min && totalPatients <= m.max
-  );
-  return milestone ? totalPatients * milestone.rate : 0;
+/**
+ * Commission is now FULLY backend-driven.
+ * This function is kept only for fallback safety.
+ */
+export const calculateCommission = (revenue: number): number => {
+  return revenue;
 };
 
-export const currentMilestone = (totalPatients: number): Milestone | null =>
-  MILESTONES.find((m) => totalPatients >= m.min && totalPatients <= m.max) ??
-  null;
+export const currentMilestone = (revenue: number): Milestone | null =>
+  MILESTONES.find((m) => revenue >= m.min && revenue <= m.max) ?? null;
 
-export const nextMilestone = (totalPatients: number): Milestone | null =>
-  MILESTONES.find((m) => totalPatients < m.min) ?? null;
+export const nextMilestone = (revenue: number): Milestone | null =>
+  MILESTONES.find((m) => revenue < m.min) ?? null;
 
-export const getMilestoneIndex = (count: number) =>
-  MILESTONES.findIndex((m) => count >= m.min && count <= m.max);
+export const getMilestoneIndex = (revenue: number) =>
+  MILESTONES.findIndex((m) => revenue >= m.min && revenue <= m.max);
 
 const addDays = (d: Date, days: number) =>
   new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
@@ -62,6 +71,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
 
     let promoCode =
       promoValue && promoValue.length > 0 ? promoValue : DEFAULT_PROMO_CODE;
+
     let offerStart = DEFAULT_CYCLE_START;
     let offerEnd = addDays(DEFAULT_CYCLE_START, DEFAULT_CYCLE_LENGTH_DAYS);
 
@@ -69,20 +79,16 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
       try {
         const user = JSON.parse(userJson);
 
-        // promo fallback
         if (!promoValue || promoValue.length === 0) {
           if (user?.promocode) promoCode = user.promocode;
           else if (user?.referralCode) promoCode = user.referralCode;
         }
 
-        // cycle from createdAt
         if (user?.createdAt) {
           const parsed = new Date(user.createdAt);
           if (!isNaN(parsed.getTime())) {
-            const dateOnly = new Date(parsed);
-            dateOnly.setHours(0, 0, 0, 0);
-            offerStart = dateOnly;
-            offerEnd = addDays(dateOnly, DEFAULT_CYCLE_LENGTH_DAYS);
+            offerStart = new Date(parsed);
+            offerEnd = addDays(offerStart, DEFAULT_CYCLE_LENGTH_DAYS);
           }
         }
       } catch {}
@@ -99,7 +105,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                API HELPERS                                 */
+/*                                API CONFIG                                  */
 /* -------------------------------------------------------------------------- */
 
 const API_BASE = "https://services.thelifesavers.in/api";
@@ -113,13 +119,6 @@ async function getAuthToken(): Promise<string | null> {
   try {
     const direct = window?.localStorage?.getItem?.("token");
     if (direct) return direct.replace(/^"|"$/g, "");
-    const key = Object.keys(window?.localStorage ?? {}).find((k) =>
-      k.toLowerCase().includes("capacitorstorage:token")
-    );
-    if (key) {
-      const raw = window.localStorage.getItem(key);
-      if (raw) return raw.replace(/^"|"$/g, "");
-    }
   } catch {}
 
   return null;
@@ -142,8 +141,6 @@ function mapPayoutStatusToPaymentStatus(
 /*                              BACKEND TYPES                                 */
 /* -------------------------------------------------------------------------- */
 
-export type BackendTier = { min: number; max: number; rate: number };
-
 export type BackendDashboard = {
   success: boolean;
   promoCode: string;
@@ -162,16 +159,12 @@ export type BackendDashboard = {
       note?: string;
     };
   };
+
   patients: number;
+  revenue: number;
+  bonus: number;
   commission: number;
-  tier: BackendTier;
-  nextTier?: { rate: number; need: number } | null;
-  breakdown: Array<{
-    range: string;
-    rate: number;
-    count: number;
-    commission: number;
-  }>;
+
   recentReferrals: Array<{
     id: string;
     orderId: string;
@@ -180,13 +173,13 @@ export type BackendDashboard = {
     total: number;
     createdAt: string;
   }>;
-  updatedAt: string;
 
-  // Optional bank snapshot fields (added by backend)
   bankStatus?: "PENDING" | "VERIFIED" | "REJECTED";
   bankVerifiedAt?: string | null;
   bankRejectionReason?: string | null;
   bankLastUpdatedAt?: string | null;
+
+  updatedAt: string;
 };
 
 export type BackendCycles = {
@@ -195,8 +188,9 @@ export type BackendCycles = {
     start: string;
     end: string;
     patients: number;
+    revenue: number;
+    bonus: number;
     commission: number;
-    tier: BackendTier;
     payout?: {
       id: string;
       status: "PAID" | "PENDING" | "UNPAID";
@@ -266,7 +260,7 @@ export async function fetchPartnerReferrals(
 }
 
 /* -------------------------------------------------------------------------- */
-/*                        MAP CYCLES → HISTORY MODAL                           */
+/*                        MAP CYCLES → HISTORY MODAL                          */
 /* -------------------------------------------------------------------------- */
 
 export type PaymentStatus = "paid" | "pending" | "unpaid";
@@ -276,6 +270,8 @@ export interface CycleHistoryItem {
   startDate: string;
   endDate: string;
   totalPatients: number;
+  totalRevenue: number;
+  totalBonus: number;
   totalCommission: number;
   paymentStatus: PaymentStatus;
   paymentRef?: string | null;
@@ -292,6 +288,8 @@ export function mapBackendCyclesToHistoryItems(
       startDate: c.start,
       endDate: c.end,
       totalPatients: c.patients,
+      totalRevenue: c.revenue,
+      totalBonus: c.bonus,
       totalCommission: c.commission,
       paymentStatus: mapPayoutStatusToPaymentStatus(payout?.status),
       paymentRef: payout?.note ?? null,
@@ -310,7 +308,7 @@ export async function loadPartnerDataFromAPI(): Promise<LoadedPartnerData> {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                            ✅ BANK API (UPDATED)                            */
+/*                            ✅ BANK API                                     */
 /* -------------------------------------------------------------------------- */
 
 export type BankVerificationStatus = "PENDING" | "VERIFIED" | "REJECTED";
@@ -320,9 +318,9 @@ export type BackendBankResponse = {
   message?: string;
   bank: null | {
     holderName: string;
-    bankName?: string | null;          // <- added
+    bankName?: string | null;
     accountNoMasked?: string;
-    accountNo?: string; // admin side only
+    accountNo?: string;
     ifsc: string;
     status: BankVerificationStatus;
     rejectionReason?: string | null;
@@ -331,7 +329,6 @@ export type BackendBankResponse = {
   };
 };
 
-/** GET /partners/me/bank */
 export async function fetchMyBank(): Promise<BackendBankResponse> {
   const token = await getAuthToken();
   const res = await axios.get<BackendBankResponse>(
@@ -344,10 +341,9 @@ export async function fetchMyBank(): Promise<BackendBankResponse> {
   return res.data;
 }
 
-/** PUT /partners/me/bank */
 export async function upsertMyBank(input: {
   holderName: string;
-  bankName: string;           // <- added
+  bankName: string;
   accountNo: string;
   ifsc: string;
 }): Promise<BackendBankResponse> {
@@ -358,6 +354,7 @@ export async function upsertMyBank(input: {
     accountNo: String(input.accountNo ?? "").trim(),
     ifsc: String(input.ifsc ?? "").trim().toUpperCase(),
   };
+
   const res = await axios.put<BackendBankResponse>(
     `${API_BASE}/partners/me/bank`,
     payload,
@@ -366,5 +363,6 @@ export async function upsertMyBank(input: {
       withCredentials: true,
     }
   );
+
   return res.data;
 }

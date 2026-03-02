@@ -88,8 +88,8 @@ const SectionCard: React.FC<{
 SectionCard.displayName = "SectionCard";
 
 // ------------------- Stepper -------------------
-const MilestoneStepper: React.FC<{ patients: number }> = React.memo(({ patients }) => {
-  const idx = MILESTONES.findIndex((m) => patients >= m.min && patients <= m.max);
+const MilestoneStepper: React.FC<{ revenue: number }> = React.memo(({ revenue }) => {
+  const idx = MILESTONES.findIndex((m) => revenue >= m.min && revenue <= m.max);
   return (
     <div className="w-full flex items-center">
       {MILESTONES.map((m, i) => {
@@ -109,7 +109,7 @@ const MilestoneStepper: React.FC<{ patients: number }> = React.memo(({ patients 
                     : "bg-gray-100 text-gray-400 border-gray-300"
                 }`}
               >
-                ₹{m.rate}
+                {m.rate}%
               </div>
               <span
                 className={`mt-1 text-xs font-semibold ${
@@ -118,7 +118,7 @@ const MilestoneStepper: React.FC<{ patients: number }> = React.memo(({ patients 
               >
                 {m.max === Infinity ? `${m.min}+` : `${m.min}–${m.max}`}
               </span>
-              <span className="text-[10px] text-gray-400">Patients</span>
+              <span className="text-[10px] text-gray-400">Revenue</span>
             </motion.div>
             {i < MILESTONES.length - 1 && (
               <div
@@ -142,6 +142,8 @@ MilestoneStepper.displayName = "MilestoneStepper";
 const PartnerDashboardInner: React.FC = () => {
   const {
     patients,
+    revenue,
+    bonus,
     promoCode,
     copied,
     isTncOpen,
@@ -150,7 +152,6 @@ const PartnerDashboardInner: React.FC = () => {
     windowSize,
     showConfetti,
     commission,
-    milestone,
     next,
     setCopied,
     openTnc,
@@ -362,18 +363,18 @@ const PartnerDashboardInner: React.FC = () => {
                 </span>
               }
             >
-              <MilestoneStepper patients={patients} />
+              <MilestoneStepper revenue={revenue} />
               {next ? (
                 <div className="mt-4 text-center">
                   <div className="inline-block px-4 py-2 bg-gradient-to-r from-red-100 via-yellow-50 to-green-100 rounded-xl shadow-md border border-red-200">
                     <span className="text-sm lg:text-base text-gray-800 font-medium">
                       🚀 You need{" "}
                       <span className="font-bold text-red-600 text-lg">
-                        {next.min - patients}
+                        {next.min - revenue}
                       </span>{" "}
-                      more patients to unlock{" "}
+                      more revenue to unlock{" "}
                       <span className="font-bold text-green-700 text-lg">
-                        ₹{next.rate}/patient
+                        {next.rate}% bonus
                       </span>
                     </span>
                   </div>
@@ -406,16 +407,10 @@ const PartnerDashboardInner: React.FC = () => {
                   <div className="text-xs text-gray-600">Total Commission</div>
                 </div>
                 <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 shadow">
-                  {milestone ? (
-                    <>
-                      <div className="text-2xl lg:text-lg font-extrabold text-yellow-700">
-                        ₹{milestone.rate}
-                      </div>
-                      <div className="text-xs text-gray-600">Per Patient</div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-gray-600">No milestone</div>
-                  )}
+                  <div className="text-2xl lg:text-lg font-extrabold text-yellow-700">
+                    {bonus}%
+                  </div>
+                  <div className="text-xs text-gray-600">Bonus %</div>
                 </div>
               </div>
             </SectionCard>
@@ -478,7 +473,7 @@ const PartnerDashboardInner: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-6 space-y-3 text-sm text-gray-700">
               <ul className="space-y-2 list-disc pl-5">
-                <li>Offer runs in recurring 15-day cycles.</li>
+                <li>Offer runs in recurring 7-day cycles.</li>
                 <li>Promo code must be used by referred patients.</li>
                 <li>Commission slabs reset each cycle.</li>
                 <li>Rewards and bonuses apply only during active cycles.</li>

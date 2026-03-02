@@ -19,6 +19,7 @@ import {
   fetchMyBank,
   upsertMyBank,
   BackendBankResponse,
+  type CycleHistoryItem as ServiceCycleHistoryItem,
 } from "../services/partnerService";
 
 // ------------------- Shared types for history -------------------
@@ -29,6 +30,8 @@ export interface CycleHistoryItem {
   startDate: string;
   endDate: string;
   totalPatients: number;
+  totalRevenue?: number;
+  totalBonus?: number;
   totalCommission: number;
   paymentStatus: PaymentStatus;
   paymentRef?: string | null;
@@ -87,7 +90,7 @@ async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
   try {
     const data = await fetchPartnerCycles();
     if (data?.success) {
-      const mapped = mapBackendCyclesToHistoryItems(data);
+      const mapped = mapBackendCyclesToHistoryItems(data) as CycleHistoryItem[];
       // Persist for offline/demo convenience
       try {
         await Preferences.set({
@@ -128,6 +131,9 @@ async function savePartnerHistory(cycles: CycleHistoryItem[]) {
 export const usePartnerDashboard = () => {
   // state
   const [patients, setPatients] = React.useState<number>(0);
+  const [revenue, setRevenue] = React.useState<number>(0);
+  const [bonus, setBonus] = React.useState<number>(0);
+  const [commission, setCommission] = React.useState<number>(0);
   const [copied, setCopied] = React.useState(false);
   const [showConfetti, setShowConfetti] = React.useState(false);
   const [isTncOpen, setIsTncOpen] = React.useState(false);
@@ -142,9 +148,8 @@ export const usePartnerDashboard = () => {
   const [promoCode, setPromoCode] = React.useState<string>("LSAVE123");
 
   // derived
-  const commission = React.useMemo(() => calculateCommission(patients), [patients]);
-  const milestone = React.useMemo(() => currentMilestone(patients), [patients]);
-  const next = React.useMemo(() => nextMilestone(patients), [patients]);
+  const milestone = React.useMemo(() => currentMilestone(revenue), [revenue]);
+  const next = React.useMemo(() => nextMilestone(revenue), [revenue]);
 
   // offer cycle defaults
   const [offerStart, setOfferStart] = React.useState<Date>(DEFAULT_CYCLE_START);
@@ -274,6 +279,9 @@ export const usePartnerDashboard = () => {
       setOfferStart(new Date(d.cycle.start));
       setOfferEnd(new Date(d.cycle.end));
       setPatients(d.patients ?? 0);
+      setRevenue(d.revenue ?? 0);
+      setBonus(d.bonus ?? 0);
+      setCommission(d.commission ?? calculateCommission(d.revenue ?? 0));
 
       // Bank snapshot from dashboard payload (optional)
       if (typeof d.bankStatus === "string") {
@@ -287,9 +295,9 @@ export const usePartnerDashboard = () => {
 
       // History
       const cycles = await fetchPartnerCycles();
-      const mapped = mapBackendCyclesToHistoryItems(cycles);
+      const mapped = mapBackendCyclesToHistoryItems(cycles) as ServiceCycleHistoryItem[];
       setHistory(mapped);
-      savePartnerHistory(mapped);
+      savePartnerHistory(mapped as CycleHistoryItem[]);
     } catch (err) {
       console.warn("Refresh failed; falling back to local prefs", err);
       // minimal fallback for promo/cycle if backend is down
@@ -307,6 +315,11 @@ export const usePartnerDashboard = () => {
       // history fallback
       const cached = await loadPartnerHistory();
       setHistory(cached);
+
+      // keep financial fields deterministic when backend is unavailable
+      setRevenue(0);
+      setBonus(0);
+      setCommission(0);
 
       // bank fallbacks (unknown)
       setBankStatus("PENDING");
@@ -331,9 +344,9 @@ export const usePartnerDashboard = () => {
   }, [refreshDashboard]);
 
   // ---------- Milestone confetti ----------
-  const getIndex = React.useCallback((count: number) => getMilestoneIndex(count), []);
+  const getIndex = React.useCallback((value: number) => getMilestoneIndex(value), []);
 
-  const initialIndex = getIndex(patients);
+  const initialIndex = getIndex(revenue);
   const [, setLastMilestoneIndex] = React.useState<number>(
     initialIndex >= 0 ? initialIndex : -1
   );
@@ -343,7 +356,7 @@ export const usePartnerDashboard = () => {
   const confettiTimerRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
-    const idx = getIndex(patients);
+    const idx = getIndex(revenue);
 
     if (idx > lastMilestoneIndexRef.current) {
       setShowConfetti(true);
@@ -366,7 +379,7 @@ export const usePartnerDashboard = () => {
         confettiTimerRef.current = null;
       }
     };
-  }, [patients, getIndex]);
+  }, [revenue, getIndex]);
 
   // copy feedback reset
   React.useEffect(() => {
@@ -399,6 +412,8 @@ export const usePartnerDashboard = () => {
   return {
     // state
     patients,
+    revenue,
+    bonus,
     copied,
     showConfetti,
     isTncOpen,
