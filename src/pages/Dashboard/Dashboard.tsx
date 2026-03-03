@@ -17,11 +17,9 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import Confetti from "react-confetti";
 import { motion } from "framer-motion";
 
-// moved logic to service/hooks but keeping UI the same
-import { MILESTONES } from "../../services/partnerService";
+import { type Milestone } from "../../services/partnerService";
 import { usePartnerDashboard, useCountdown } from "../../hooks/usePartnerDashboard";
 
-// Modals
 import PartnerHistoryModal from "../../Components/Models/PartnerHistoryModal";
 import PartnerBankModal from "../../Components/Models/PartnerBankModal";
 
@@ -88,13 +86,22 @@ const SectionCard: React.FC<{
 SectionCard.displayName = "SectionCard";
 
 // ------------------- Stepper -------------------
-const MilestoneStepper: React.FC<{ revenue: number }> = React.memo(({ revenue }) => {
-  const idx = MILESTONES.findIndex((m) => revenue >= m.min && revenue <= m.max);
+// NOW accepts dynamic milestones from backend and handles max: null
+const MilestoneStepper: React.FC<{
+  revenue: number;
+  milestones: Milestone[];
+}> = React.memo(({ revenue, milestones }) => {
+  const idx = milestones.findIndex(
+    (m) => revenue >= m.min && (m.max === null || revenue <= m.max)
+  );
+
   return (
     <div className="w-full flex items-center">
-      {MILESTONES.map((m, i) => {
+      {milestones.map((m, i) => {
         const reached = i <= idx;
         const isCurrent = i === idx;
+        const label = m.max === null ? `${m.min}+` : `${m.min}–${m.max}`;
+
         return (
           <React.Fragment key={i}>
             <motion.div
@@ -116,11 +123,11 @@ const MilestoneStepper: React.FC<{ revenue: number }> = React.memo(({ revenue })
                   reached ? "text-red-700" : "text-gray-500"
                 }`}
               >
-                {m.max === Infinity ? `${m.min}+` : `${m.min}–${m.max}`}
+                {label}
               </span>
               <span className="text-[10px] text-gray-400">Revenue</span>
             </motion.div>
-            {i < MILESTONES.length - 1 && (
+            {i < milestones.length - 1 && (
               <div
                 className={`h-1 flex-1 mx-2 rounded-full ${
                   i < idx
@@ -143,7 +150,7 @@ const PartnerDashboardInner: React.FC = () => {
   const {
     patients,
     revenue,
-    bonus,
+    bonusPercent,
     promoCode,
     copied,
     isTncOpen,
@@ -152,13 +159,17 @@ const PartnerDashboardInner: React.FC = () => {
     windowSize,
     showConfetti,
     commission,
-    next,
+    baseCommission,
+    bonusEarned,
+    isBonusApplied,
+    nextBonusMilestone,
+    dynamicMilestones,
     setCopied,
     openTnc,
     closeTnc,
     resetOffer,
 
-    // history wiring
+    // history
     history,
     isHistoryOpen,
     openHistory,
@@ -168,17 +179,16 @@ const PartnerDashboardInner: React.FC = () => {
     refreshDashboard,
     isRefreshing,
 
-    // bank snapshot + modal handlers from hook
+    // bank
     bankStatus,
     bankNeedsAction,
     bankRejectionReason,
-
     bankLoading,
     bankSubmitting,
     bankError,
     bankSuccess,
     holderName, setHolderName,
-    bankName, setBankName,              // 🔹 NEW
+    bankName, setBankName,
     accountNo, setAccountNo,
     accountNoMasked,
     ifsc, setIfsc,
@@ -186,14 +196,9 @@ const PartnerDashboardInner: React.FC = () => {
     submitBankDetails,
   } = usePartnerDashboard();
 
-  // Bank modal state handled here
   const [isBankOpen, setIsBankOpen] = React.useState(false);
   const openBank = React.useCallback(() => {
-    // ✅ Open modal immediately
     setIsBankOpen(true);
-
-    // ✅ Trigger loading spinner/skeleton inside modal
-    // (no await → modal won't wait)
     loadBankDetails();
   }, [loadBankDetails]);
   const closeBank = React.useCallback(() => setIsBankOpen(false), []);
@@ -202,7 +207,7 @@ const PartnerDashboardInner: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center "
+      className="min-h-screen flex items-center justify-center"
       style={{ paddingTop: "4rem", paddingBottom: "12rem" }}
     >
       {showConfetti && (
@@ -216,14 +221,9 @@ const PartnerDashboardInner: React.FC = () => {
       )}
 
       <div className="bg-white/90 backdrop-blur rounded-2xl shadow-xl max-w-7xl w-full overflow-hidden ring-1 ring-red-100 relative">
-        {/* Header */}
-        <div
-          className="
-    bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white 
-    py-6 px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4
-  "
-        >
-          {/* Title */}
+
+        {/* ── Header ── */}
+        <div className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white py-6 px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
             <h1 className="text-2xl sm:text-3xl font-extrabold drop-shadow">
               Partner Dashboard
@@ -233,15 +233,11 @@ const PartnerDashboardInner: React.FC = () => {
             </span>
           </div>
 
-          {/* Header actions */}
           <div className="flex flex-wrap justify-center sm:justify-end items-center gap-2">
-
             <button
               onClick={openBank}
               className={`text-sm px-3 py-2 rounded-full bg-white/20 text-white font-semibold shadow transition flex items-center gap-2 ${
-                bankNeedsAction
-                  ? "ring-2 ring-yellow-300/70"
-                  : "hover:bg-white/30"
+                bankNeedsAction ? "ring-2 ring-yellow-300/70" : "hover:bg-white/30"
               }`}
             >
               <FaUniversity />
@@ -275,22 +271,17 @@ const PartnerDashboardInner: React.FC = () => {
           </div>
         </div>
 
-        {/* Content */}
+        {/* ── Content ── */}
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* LEFT COLUMN: Promo + Stats */}
+
+          {/* ── LEFT COLUMN ── */}
           <div className="space-y-6">
+
             {/* Promo Code */}
             <SectionCard
-              title={
-                <span className="flex items-center gap-2">
-                  🎟️ Your Promo Code
-                </span>
-              }
+              title={<span className="flex items-center gap-2">🎟️ Your Promo Code</span>}
               right={
-                <CopyToClipboard
-                  text={promoCode}
-                  onCopy={() => setCopied(true)}
-                >
+                <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
                   <button className="px-3 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow hover:scale-105 transition flex items-center gap-2">
                     <FaCopy /> {copied ? "Copied!" : "Copy"}
                   </button>
@@ -311,21 +302,20 @@ const PartnerDashboardInner: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
                 <FaUserFriends size={28} className="mb-2" />
-                <div className="text-4xl lg:text-5xl font-extrabold">
-                  {patients}
-                </div>
-                <div className="text-sm uppercase tracking-wider">
-                  Patients Referred
-                </div>
+                <div className="text-4xl lg:text-5xl font-extrabold">{patients}</div>
+                <div className="text-sm uppercase tracking-wider">Patients Referred</div>
               </div>
+
               <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
                 <FaRupeeSign size={28} className="mb-2" />
-                <div className="text-4xl lg:text-5xl font-extrabold">
-                  ₹{commission}
-                </div>
-                <div className="text-sm uppercase tracking-wider">
-                  Commission Earned
-                </div>
+                <div className="text-4xl lg:text-5xl font-extrabold">₹{commission}</div>
+                <div className="text-sm uppercase tracking-wider">Commission Earned</div>
+                {/* Show base + bonus breakdown when a bonus is active */}
+                {isBonusApplied && bonusEarned > 0 && (
+                  <div className="mt-1 text-xs text-green-100 font-medium">
+                    ₹{baseCommission} base + ₹{bonusEarned} bonus
+                  </div>
+                )}
               </div>
             </div>
 
@@ -354,8 +344,10 @@ const PartnerDashboardInner: React.FC = () => {
             </SectionCard>
           </div>
 
-          {/* RIGHT COLUMN: Stepper + Summary */}
+          {/* ── RIGHT COLUMN ── */}
           <div className="space-y-6">
+
+            {/* Milestone Stepper */}
             <SectionCard
               title={
                 <span className="flex items-center gap-2">
@@ -363,29 +355,33 @@ const PartnerDashboardInner: React.FC = () => {
                 </span>
               }
             >
-              <MilestoneStepper revenue={revenue} />
-              {next ? (
+              {/* Pass dynamic milestones from backend */}
+              <MilestoneStepper revenue={revenue} milestones={dynamicMilestones} />
+
+              {/* Use nextBonusMilestone from backend when available, else derive locally */}
+              {nextBonusMilestone ? (
                 <div className="mt-4 text-center">
                   <div className="inline-block px-4 py-2 bg-gradient-to-r from-red-100 via-yellow-50 to-green-100 rounded-xl shadow-md border border-red-200">
                     <span className="text-sm lg:text-base text-gray-800 font-medium">
                       🚀 You need{" "}
                       <span className="font-bold text-red-600 text-lg">
-                        {next.min - revenue}
+                        ₹{nextBonusMilestone.remaining}
                       </span>{" "}
                       more revenue to unlock{" "}
                       <span className="font-bold text-green-700 text-lg">
-                        {next.rate}% bonus
+                        {nextBonusMilestone.unlockPercent}% bonus
                       </span>
                     </span>
                   </div>
                 </div>
               ) : (
                 <div className="mt-4 text-base text-green-700 font-bold text-center">
-                  You’ve reached the highest milestone!
+                  🎉 You've reached the highest milestone!
                 </div>
               )}
             </SectionCard>
 
+            {/* Summary */}
             <SectionCard
               title={
                 <span className="flex items-center gap-2">
@@ -400,15 +396,22 @@ const PartnerDashboardInner: React.FC = () => {
                   </div>
                   <div className="text-xs text-gray-600">Patients Referred</div>
                 </div>
+
                 <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100 shadow">
                   <div className="text-2xl lg:text-lg font-extrabold text-green-700">
                     ₹{commission}
                   </div>
                   <div className="text-xs text-gray-600">Total Commission</div>
+                  {isBonusApplied && bonusEarned > 0 && (
+                    <div className="text-[10px] text-green-600 mt-0.5 font-medium">
+                      ₹{baseCommission} + ₹{bonusEarned} bonus
+                    </div>
+                  )}
                 </div>
+
                 <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 shadow">
                   <div className="text-2xl lg:text-lg font-extrabold text-yellow-700">
-                    {bonus}%
+                    {bonusPercent}%
                   </div>
                   <div className="text-xs text-gray-600">Bonus %</div>
                 </div>
@@ -425,10 +428,7 @@ const PartnerDashboardInner: React.FC = () => {
                     Higher tiers unlock better rewards.
                   </p>
                 </div>
-                <CopyToClipboard
-                  text={promoCode}
-                  onCopy={() => setCopied(true)}
-                >
+                <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
                   <button className="px-3 py-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow">
                     Copy Code
                   </button>
@@ -439,7 +439,7 @@ const PartnerDashboardInner: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Countdown Timer */}
+      {/* ── Floating Countdown Timer ── */}
       {offerStart && offerEnd && (
         <div className="fixed bottom-14 left-1/2 transform -translate-x-1/2 z-50">
           <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl px-4 py-3 border border-red-200">
@@ -452,7 +452,7 @@ const PartnerDashboardInner: React.FC = () => {
         </div>
       )}
 
-      {/* Terms & Conditions Modal */}
+      {/* ── Terms & Conditions Modal ── */}
       {isTncOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div
@@ -477,14 +477,10 @@ const PartnerDashboardInner: React.FC = () => {
                 <li>Promo code must be used by referred patients.</li>
                 <li>Commission slabs reset each cycle.</li>
                 <li>Rewards and bonuses apply only during active cycles.</li>
-                <li>
-                  The offer may be modified or withdrawn without prior notice.
-                </li>
+                <li>The offer may be modified or withdrawn without prior notice.</li>
               </ul>
-
               <p className="mt-4 text-xs leading-relaxed text-gray-500">
-                By participating, you agree to these terms and our partner
-                policy.
+                By participating, you agree to these terms and our partner policy.
               </p>
             </div>
 
@@ -506,18 +502,17 @@ const PartnerDashboardInner: React.FC = () => {
         </div>
       )}
 
-      {/* Partner History Modal */}
+      {/* ── Partner History Modal ── */}
       <PartnerHistoryModal
         isOpen={isHistoryOpen}
         onClose={closeHistory}
         cycles={history}
       />
 
-      {/* Partner Bank Modal */}
+      {/* ── Partner Bank Modal ── */}
       <PartnerBankModal
         isOpen={isBankOpen}
         onClose={closeBank}
-        // pass bank props/actions from the hook
         loading={bankLoading}
         submitting={bankSubmitting}
         error={bankError}
@@ -526,8 +521,8 @@ const PartnerDashboardInner: React.FC = () => {
         rejectionReasonFromServer={bankRejectionReason ?? undefined}
         holderName={holderName}
         setHolderName={setHolderName}
-        bankName={bankName}                 // 🔹 NEW
-        setBankName={setBankName}           // 🔹 NEW
+        bankName={bankName}
+        setBankName={setBankName}
         accountNo={accountNo}
         setAccountNo={setAccountNo}
         accountNoMasked={accountNoMasked}

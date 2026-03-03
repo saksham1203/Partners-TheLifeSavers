@@ -2,54 +2,29 @@
 import React from "react";
 import { Preferences } from "@capacitor/preferences";
 import {
-  calculateCommission,
-  currentMilestone,
-  nextMilestone,
-  getMilestoneIndex,
-  loadPartnerDataFromPrefs,
-  DEFAULT_CYCLE_START,
-  DEFAULT_CYCLE_LENGTH_DAYS,
-  MILESTONES,
-  // Live API helpers
-  fetchPartnerDashboard,
-  fetchPartnerCycles,
-  mapBackendCyclesToHistoryItems,
-  loadPartnerDataFromAPI,
-  // Bank API helpers
-  fetchMyBank,
-  upsertMyBank,
-  BackendBankResponse,
+  calculateCommission, currentMilestone, nextMilestone, getMilestoneIndex,
+  loadPartnerDataFromPrefs, DEFAULT_CYCLE_START, DEFAULT_CYCLE_LENGTH_DAYS, MILESTONES,
+  buildMilestonesFromSlabs,  // NEW
+  fetchPartnerDashboard, fetchPartnerCycles, mapBackendCyclesToHistoryItems, loadPartnerDataFromAPI,
+  fetchMyBank, upsertMyBank, BackendBankResponse,
+  type Milestone,            // NEW
   type CycleHistoryItem as ServiceCycleHistoryItem,
 } from "../services/partnerService";
 
-// ------------------- Shared types for history -------------------
 export type PaymentStatus = "paid" | "pending" | "unpaid";
 
 export interface CycleHistoryItem {
-  id: string;
-  startDate: string;
-  endDate: string;
-  totalPatients: number;
-  totalRevenue?: number;
-  totalBonus?: number;
-  totalCommission: number;
-  paymentStatus: PaymentStatus;
-  paymentRef?: string | null;
-  paidAt?: string | null;
+  id: string; startDate: string; endDate: string;
+  totalPatients: number; totalRevenue?: number; totalBonus?: number; totalCommission: number;
+  paymentStatus: PaymentStatus; paymentRef?: string | null; paidAt?: string | null;
 }
 
-// ------------------- Bank status type (from backend) -------------------
 export type BankVerificationStatus = "PENDING" | "VERIFIED" | "REJECTED";
 
 // ------------------- Countdown helpers -------------------
 const calcTimeLeft = (endTime: number) => {
-  const now = new Date().getTime();
-  const diff = endTime - now;
-
-  if (diff <= 0) {
-    return { days: 0, hours: 0, minutes: 0, seconds: 0, ended: true } as const;
-  }
-
+  const diff = endTime - new Date().getTime();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, ended: true } as const;
   return {
     days: Math.floor(diff / (1000 * 60 * 60 * 24)),
     hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
@@ -60,13 +35,9 @@ const calcTimeLeft = (endTime: number) => {
 };
 
 export const useCountdown = (endDate: Date, onEnd: () => void) => {
-  const [timeLeft, setTimeLeft] = React.useState(() =>
-    calcTimeLeft(endDate.getTime())
-  );
-
+  const [timeLeft, setTimeLeft] = React.useState(() => calcTimeLeft(endDate.getTime()));
   const onEndRef = React.useRef(onEnd);
   onEndRef.current = onEnd;
-
   React.useEffect(() => {
     const interval = window.setInterval(() => {
       const newTime = calcTimeLeft(endDate.getTime());
@@ -75,87 +46,59 @@ export const useCountdown = (endDate: Date, onEnd: () => void) => {
     }, 1000);
     return () => window.clearInterval(interval);
   }, [endDate]);
-
   return timeLeft;
 };
 
-// ------------------- Helpers: history load/save -------------------
 const HISTORY_PREFS_KEY = "partner_history";
 
-/**
- * Load history from backend first (live), then prefs fallback, then empty.
- */
 async function loadPartnerHistory(): Promise<CycleHistoryItem[]> {
-  // 1) Backend (live)
   try {
     const data = await fetchPartnerCycles();
     if (data?.success) {
       const mapped = mapBackendCyclesToHistoryItems(data) as CycleHistoryItem[];
-      // Persist for offline/demo convenience
-      try {
-        await Preferences.set({
-          key: HISTORY_PREFS_KEY,
-          value: JSON.stringify(mapped),
-        });
-      } catch {}
+      try { await Preferences.set({ key: HISTORY_PREFS_KEY, value: JSON.stringify(mapped) }); } catch {}
       return mapped;
     }
-  } catch {
-    // ignore and fallback
-  }
-
-  // 2) Capacitor Preferences fallback
+  } catch {}
   try {
     const { value } = await Preferences.get({ key: HISTORY_PREFS_KEY });
-    if (value) {
-      const parsed = JSON.parse(value) as CycleHistoryItem[];
-      if (Array.isArray(parsed)) return parsed;
-    }
+    if (value) { const parsed = JSON.parse(value) as CycleHistoryItem[]; if (Array.isArray(parsed)) return parsed; }
   } catch {}
-
-  // 3) Empty fallback
   return [];
 }
 
-/** Persist to Preferences after successful fetch/merge */
 async function savePartnerHistory(cycles: CycleHistoryItem[]) {
-  try {
-    await Preferences.set({
-      key: HISTORY_PREFS_KEY,
-      value: JSON.stringify(cycles),
-    });
-  } catch {}
+  try { await Preferences.set({ key: HISTORY_PREFS_KEY, value: JSON.stringify(cycles) }); } catch {}
 }
 
-// ------------------- Core dashboard hook -------------------
 export const usePartnerDashboard = () => {
-  // state
   const [patients, setPatients] = React.useState<number>(0);
   const [revenue, setRevenue] = React.useState<number>(0);
   const [bonus, setBonus] = React.useState<number>(0);
+  const [bonusPercent, setBonusPercent] = React.useState<number>(0);          // NEW
   const [commission, setCommission] = React.useState<number>(0);
+  const [baseCommission, setBaseCommission] = React.useState<number>(0);      // NEW
+  const [bonusEarned, setBonusEarned] = React.useState<number>(0);            // NEW
+  const [totalCommissionEarned, setTotalCommissionEarned] = React.useState<number>(0); // NEW
+  const [isBonusApplied, setIsBonusApplied] = React.useState<boolean>(false); // NEW
+  const [nextBonusMilestone, setNextBonusMilestone] = React.useState<{ nextTarget: number; unlockPercent: number; remaining: number } | null>(null); // NEW
+
+  // NEW: dynamic milestones built from backend slabs
+  const [dynamicMilestones, setDynamicMilestones] = React.useState<Milestone[]>(MILESTONES);
+
   const [copied, setCopied] = React.useState(false);
   const [showConfetti, setShowConfetti] = React.useState(false);
   const [isTncOpen, setIsTncOpen] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-
-  const [windowSize, setWindowSize] = React.useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 0,
-    height: typeof window !== "undefined" ? window.innerHeight : 0,
-  });
-
-  // promo code state - default fallback to placeholder
+  const [windowSize, setWindowSize] = React.useState({ width: typeof window !== "undefined" ? window.innerWidth : 0, height: typeof window !== "undefined" ? window.innerHeight : 0 });
   const [promoCode, setPromoCode] = React.useState<string>("LSAVE123");
 
-  // derived
-  const milestone = React.useMemo(() => currentMilestone(revenue), [revenue]);
-  const next = React.useMemo(() => nextMilestone(revenue), [revenue]);
+  // derived — now use dynamicMilestones
+  const milestone = React.useMemo(() => currentMilestone(revenue, dynamicMilestones), [revenue, dynamicMilestones]);
+  const next = React.useMemo(() => nextMilestone(revenue, dynamicMilestones), [revenue, dynamicMilestones]);
 
-  // offer cycle defaults
   const [offerStart, setOfferStart] = React.useState<Date>(DEFAULT_CYCLE_START);
-  const [offerEnd, setOfferEnd] = React.useState<Date>(
-    new Date(DEFAULT_CYCLE_START.getTime() + DEFAULT_CYCLE_LENGTH_DAYS * 24 * 60 * 60 * 1000)
-  );
+  const [offerEnd, setOfferEnd] = React.useState<Date>(new Date(DEFAULT_CYCLE_START.getTime() + DEFAULT_CYCLE_LENGTH_DAYS * 24 * 60 * 60 * 1000));
 
   const resetOffer = React.useCallback(() => {
     const nextStart = new Date(offerEnd);
@@ -164,30 +107,23 @@ export const usePartnerDashboard = () => {
     setOfferEnd(nextEnd);
   }, [offerEnd]);
 
-  // history state & modal controls
   const [history, setHistory] = React.useState<CycleHistoryItem[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
   const openHistory = React.useCallback(() => setIsHistoryOpen(true), []);
   const closeHistory = React.useCallback(() => setIsHistoryOpen(false), []);
 
-  // 🔔 Bank snapshot from dashboard (lightweight, read-only)
   const [bankStatus, setBankStatus] = React.useState<BankVerificationStatus>("PENDING");
   const [bankVerifiedAt, setBankVerifiedAt] = React.useState<string | null>(null);
   const [bankRejectionReason, setBankRejectionReason] = React.useState<string | null>(null);
   const [bankLastUpdatedAt, setBankLastUpdatedAt] = React.useState<string | null>(null);
-  const bankNeedsAction = React.useMemo(
-    () => bankStatus === "PENDING" || bankStatus === "REJECTED",
-    [bankStatus]
-  );
+  const bankNeedsAction = React.useMemo(() => bankStatus === "PENDING" || bankStatus === "REJECTED", [bankStatus]);
 
-  // 🏦 Full bank form state/handlers (for modal)
   const [bankLoading, setBankLoading] = React.useState(false);
   const [bankSubmitting, setBankSubmitting] = React.useState(false);
   const [bankError, setBankError] = React.useState<string | null>(null);
   const [bankSuccess, setBankSuccess] = React.useState<string | null>(null);
-
   const [holderName, setHolderName] = React.useState("");
-  const [bankName, setBankName] = React.useState("");           // 🔹 NEW
+  const [bankName, setBankName] = React.useState("");
   const [accountNo, setAccountNo] = React.useState("");
   const [accountNoMasked, setAccountNoMasked] = React.useState<string>("");
   const [ifsc, setIfsc] = React.useState("");
@@ -205,28 +141,21 @@ export const usePartnerDashboard = () => {
   }, [holderName, bankName, accountNo, ifsc]);
 
   const loadBankDetails = React.useCallback(async () => {
-    setBankError(null);
-    setBankSuccess(null);
-    setBankLoading(true);
+    setBankError(null); setBankSuccess(null); setBankLoading(true);
     try {
       const res: BackendBankResponse = await fetchMyBank();
       if (res?.bank) {
         setHolderName(res.bank.holderName || "");
-        setBankName((res.bank as any).bankName || ""); // tolerant during migration
+        setBankName((res.bank as any).bankName || "");
         setIfsc((res.bank.ifsc || "").toUpperCase());
         setAccountNoMasked(res.bank.accountNoMasked || "");
-        setAccountNo(""); // never prefill raw number
-        // keep snapshot fields also aligned:
+        setAccountNo("");
         setBankStatus((res.bank.status as BankVerificationStatus) || "PENDING");
         setBankRejectionReason(res.bank.rejectionReason ?? null);
         setBankVerifiedAt(res.bank.verifiedAt ?? null);
         setBankLastUpdatedAt(res.bank.updatedAt ?? null);
       } else {
-        setHolderName("");
-        setBankName("");
-        setIfsc("");
-        setAccountNo("");
-        setAccountNoMasked("");
+        setHolderName(""); setBankName(""); setIfsc(""); setAccountNo(""); setAccountNoMasked("");
       }
     } catch (e: any) {
       setBankError(e?.response?.data?.message || "Failed to load bank details");
@@ -236,24 +165,15 @@ export const usePartnerDashboard = () => {
   }, []);
 
   const submitBankDetails = React.useCallback(async () => {
-    setBankError(null);
-    setBankSuccess(null);
+    setBankError(null); setBankSuccess(null);
     const v = validateBank();
-    if (v) {
-      setBankError(v);
-      return;
-    }
+    if (v) { setBankError(v); return; }
     setBankSubmitting(true);
     try {
-      const res = await upsertMyBank({
-        holderName: holderName.trim(),
-        bankName: bankName.trim(),                       // 🔹 pass bankName
-        accountNo: accountNo.replace(/\s+/g, ""),
-        ifsc: ifsc.trim().toUpperCase(),
-      });
+      const res = await upsertMyBank({ holderName: holderName.trim(), bankName: bankName.trim(), accountNo: accountNo.replace(/\s+/g, ""), ifsc: ifsc.trim().toUpperCase() });
       if (res.success) {
         setBankSuccess(res.message || "Bank details submitted. Awaiting verification.");
-        setAccountNo(""); // clear raw number after save
+        setAccountNo("");
         setAccountNoMasked(res.bank?.accountNoMasked || accountNoMasked);
         setBankStatus(res.bank?.status || "PENDING");
         setBankRejectionReason(res.bank?.rejectionReason ?? null);
@@ -269,11 +189,9 @@ export const usePartnerDashboard = () => {
     }
   }, [holderName, bankName, accountNo, ifsc, accountNoMasked, validateBank]);
 
-  // ✅ Refresh function (public)
   const refreshDashboard = React.useCallback(async () => {
     setIsRefreshing(true);
     try {
-      // Dashboard
       const d = await fetchPartnerDashboard();
       setPromoCode(d.promoCode || "LSAVE123");
       setOfferStart(new Date(d.cycle.start));
@@ -281,189 +199,93 @@ export const usePartnerDashboard = () => {
       setPatients(d.patients ?? 0);
       setRevenue(d.revenue ?? 0);
       setBonus(d.bonus ?? 0);
+      setBonusPercent(d.bonusPercent ?? 0);                  // NEW
       setCommission(d.commission ?? calculateCommission(d.revenue ?? 0));
+      setBaseCommission(d.baseCommission ?? 0);              // NEW
+      setBonusEarned(d.bonusEarned ?? 0);                    // NEW
+      setTotalCommissionEarned(d.totalCommissionEarned ?? 0);// NEW
+      setIsBonusApplied(d.isBonusApplied ?? false);          // NEW
+      setNextBonusMilestone(d.nextBonusMilestone ?? null);   // NEW
 
-      // Bank snapshot from dashboard payload (optional)
-      if (typeof d.bankStatus === "string") {
-        setBankStatus(d.bankStatus as BankVerificationStatus);
-      } else {
-        setBankStatus("PENDING");
+      // NEW: build dynamic milestones from backend slabs
+      if (d.bonusBreakdown?.slabs?.length) {
+        setDynamicMilestones(buildMilestonesFromSlabs(d.bonusBreakdown.slabs));
       }
+
+      if (typeof d.bankStatus === "string") setBankStatus(d.bankStatus as BankVerificationStatus);
+      else setBankStatus("PENDING");
       setBankVerifiedAt(d.bankVerifiedAt ?? null);
       setBankRejectionReason(d.bankRejectionReason ?? null);
       setBankLastUpdatedAt(d.bankLastUpdatedAt ?? null);
 
-      // History
       const cycles = await fetchPartnerCycles();
       const mapped = mapBackendCyclesToHistoryItems(cycles) as ServiceCycleHistoryItem[];
       setHistory(mapped);
       savePartnerHistory(mapped as CycleHistoryItem[]);
     } catch (err) {
       console.warn("Refresh failed; falling back to local prefs", err);
-      // minimal fallback for promo/cycle if backend is down
       try {
         const data = await loadPartnerDataFromAPI();
-        setPromoCode(data.promoCode);
-        setOfferStart(data.offerStart);
-        setOfferEnd(data.offerEnd);
+        setPromoCode(data.promoCode); setOfferStart(data.offerStart); setOfferEnd(data.offerEnd);
       } catch {
         const local = await loadPartnerDataFromPrefs();
-        setPromoCode(local.promoCode);
-        setOfferStart(local.offerStart);
-        setOfferEnd(local.offerEnd);
+        setPromoCode(local.promoCode); setOfferStart(local.offerStart); setOfferEnd(local.offerEnd);
       }
-      // history fallback
       const cached = await loadPartnerHistory();
       setHistory(cached);
-
-      // keep financial fields deterministic when backend is unavailable
-      setRevenue(0);
-      setBonus(0);
-      setCommission(0);
-
-      // bank fallbacks (unknown)
-      setBankStatus("PENDING");
-      setBankVerifiedAt(null);
-      setBankRejectionReason(null);
-      setBankLastUpdatedAt(null);
+      setRevenue(0); setBonus(0); setCommission(0);
+      setBankStatus("PENDING"); setBankVerifiedAt(null); setBankRejectionReason(null); setBankLastUpdatedAt(null);
     } finally {
       setIsRefreshing(false);
     }
   }, []);
 
-  // Load on mount
-  React.useEffect(() => {
-    let mounted = true;
-    (async () => {
-      await refreshDashboard();
-      if (!mounted) return;
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [refreshDashboard]);
+  React.useEffect(() => { let mounted = true; (async () => { await refreshDashboard(); })(); return () => { mounted = false; }; }, [refreshDashboard]);
 
-  // ---------- Milestone confetti ----------
-  const getIndex = React.useCallback((value: number) => getMilestoneIndex(value), []);
-
-  const initialIndex = getIndex(revenue);
-  const [, setLastMilestoneIndex] = React.useState<number>(
-    initialIndex >= 0 ? initialIndex : -1
-  );
-  const lastMilestoneIndexRef = React.useRef<number>(
-    initialIndex >= 0 ? initialIndex : -1
-  );
+  // milestone confetti
+  const getIndex = React.useCallback((value: number) => getMilestoneIndex(value, dynamicMilestones), [dynamicMilestones]);
+  const [, setLastMilestoneIndex] = React.useState<number>(-1);
+  const lastMilestoneIndexRef = React.useRef<number>(-1);
   const confettiTimerRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     const idx = getIndex(revenue);
-
     if (idx > lastMilestoneIndexRef.current) {
-      setShowConfetti(true);
-      setLastMilestoneIndex(idx);
-      lastMilestoneIndexRef.current = idx;
-
-      if (confettiTimerRef.current) {
-        window.clearTimeout(confettiTimerRef.current);
-        confettiTimerRef.current = null;
-      }
-      confettiTimerRef.current = window.setTimeout(() => {
-        setShowConfetti(false);
-        confettiTimerRef.current = null;
-      }, 5000);
+      setShowConfetti(true); setLastMilestoneIndex(idx); lastMilestoneIndexRef.current = idx;
+      if (confettiTimerRef.current) { window.clearTimeout(confettiTimerRef.current); confettiTimerRef.current = null; }
+      confettiTimerRef.current = window.setTimeout(() => { setShowConfetti(false); confettiTimerRef.current = null; }, 5000);
     }
-
-    return () => {
-      if (confettiTimerRef.current) {
-        window.clearTimeout(confettiTimerRef.current);
-        confettiTimerRef.current = null;
-      }
-    };
+    return () => { if (confettiTimerRef.current) { window.clearTimeout(confettiTimerRef.current); confettiTimerRef.current = null; } };
   }, [revenue, getIndex]);
 
-  // copy feedback reset
-  React.useEffect(() => {
-    if (!copied) return;
-    const t = window.setTimeout(() => setCopied(false), 2500);
-    return () => window.clearTimeout(t);
-  }, [copied]);
+  React.useEffect(() => { if (!copied) return; const t = window.setTimeout(() => setCopied(false), 2500); return () => window.clearTimeout(t); }, [copied]);
 
-  // responsive window size
   React.useEffect(() => {
-    const updateSize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-    window.addEventListener("resize", updateSize);
-    updateSize();
+    const updateSize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", updateSize); updateSize();
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // stable handlers for buttons
-  const decPatients = React.useCallback(
-    () => setPatients((p) => Math.max(0, p - 1)),
-    []
-  );
+  const decPatients = React.useCallback(() => setPatients((p) => Math.max(0, p - 1)), []);
   const openTnc = React.useCallback(() => setIsTncOpen(true), []);
   const closeTnc = React.useCallback(() => setIsTncOpen(false), []);
 
   return {
-    // state
-    patients,
-    revenue,
-    bonus,
-    copied,
-    showConfetti,
-    isTncOpen,
-    windowSize,
-    promoCode,
-    offerStart,
-    offerEnd,
-    isRefreshing,
-
-    // derived
-    commission,
-    milestone,
-    next,
+    patients, revenue, bonus, bonusPercent,              // bonusPercent NEW
+    copied, showConfetti, isTncOpen, windowSize, promoCode, offerStart, offerEnd, isRefreshing,
+    commission, baseCommission, bonusEarned,             // NEW
+    totalCommissionEarned, isBonusApplied,               // NEW
+    nextBonusMilestone,                                  // NEW
+    milestone, next,
+    dynamicMilestones,                                   // NEW — pass to stepper
     MILESTONES,
-
-    // history
-    history,
-    isHistoryOpen,
-
-    // bank snapshot (header)
-    bankStatus,
-    bankVerifiedAt,
-    bankRejectionReason,
-    bankLastUpdatedAt,
-    bankNeedsAction,
-
-    // bank modal state/handlers
-    bankLoading,
-    bankSubmitting,
-    bankError,
-    bankSuccess,
-    holderName, setHolderName,
-    bankName, setBankName,                // 🔹 expose bankName
-    accountNo, setAccountNo,
-    accountNoMasked,
-    ifsc, setIfsc,
-    loadBankDetails,
-    submitBankDetails,
-
-    // actions
-    setCopied,
-    decPatients,
-    openTnc,
-    closeTnc,
-    resetOffer,
-    refreshDashboard,
-
-    // history actions
-    openHistory,
-    closeHistory,
-    setHistory,
+    history, isHistoryOpen,
+    bankStatus, bankVerifiedAt, bankRejectionReason, bankLastUpdatedAt, bankNeedsAction,
+    bankLoading, bankSubmitting, bankError, bankSuccess,
+    holderName, setHolderName, bankName, setBankName,
+    accountNo, setAccountNo, accountNoMasked,
+    ifsc, setIfsc, loadBankDetails, submitBankDetails,
+    setCopied, decPatients, openTnc, closeTnc, resetOffer, refreshDashboard,
+    openHistory, closeHistory, setHistory,
   } as const;
 };
