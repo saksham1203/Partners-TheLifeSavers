@@ -240,7 +240,9 @@ export const usePartnerDashboard = () => {
     }
   }, []);
 
-  React.useEffect(() => { let mounted = true; (async () => { await refreshDashboard(); })(); return () => { mounted = false; }; }, [refreshDashboard]);
+  React.useEffect(() => {
+  refreshDashboard();
+}, [refreshDashboard]);
 
   // milestone confetti
   const getIndex = React.useCallback((value: number) => getMilestoneIndex(value, dynamicMilestones), [dynamicMilestones]);
