@@ -273,15 +273,16 @@ const PartnerHistoryModal: React.FC<PartnerHistoryModalProps> = ({
                   </button>
 
                   {expandedCycleId === c.id && (
-                    <div className="border-t border-red-100 px-3 sm:px-4 pb-5 sm:pb-6 bg-gradient-to-br from-white via-rose-50/30 to-orange-50/40">
-                      <div className="pt-4 pb-2 flex flex-wrap items-end justify-between gap-2">
-                        <div>
-                          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-700">Referrals</div>
-                          <div className="text-xs text-gray-500 mt-0.5">Showing {referrals.length} entries in this cycle</div>
-                        </div>
-                        {nextCursor && (
-                          <span className="inline-flex items-center rounded-full bg-gradient-to-r from-orange-100 to-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">
-                            More available
+                    <div className="border-t border-red-100 px-3 sm:px-4 pb-5 sm:pb-6 bg-gradient-to-br from-rose-50/70 via-white to-orange-50/60">
+                      <div className="pt-4 pb-3 flex items-center justify-between gap-2">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-700">Cycle Referrals</div>
+                        {nextCursor ? (
+                          <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-700">
+                            More records
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                            Up to date
                           </span>
                         )}
                       </div>
@@ -296,45 +297,46 @@ const PartnerHistoryModal: React.FC<PartnerHistoryModalProps> = ({
                       ) : referrals.length === 0 ? (
                         <div className="py-6 text-center text-sm text-gray-500">No referrals found for this cycle.</div>
                       ) : (
-                        <div className="mt-3 space-y-3">
+                        <div className="mt-2 grid grid-cols-1 gap-3">
                           {referrals.map((r) => (
-                            <div key={r.id} className="group rounded-2xl bg-white/95 backdrop-blur shadow-sm ring-1 ring-red-100/60 hover:shadow-lg hover:ring-red-200 transition overflow-hidden">
-                              <div className="h-[3px] w-full bg-gradient-to-r from-red-500 via-orange-400 to-pink-400" />
+                            <div key={r.id} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-red-100/70 transition hover:shadow-md hover:ring-red-200">
+                              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-400" />
                               <div className="p-4 sm:p-5">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                   <div className="min-w-0">
-                                    <div className="text-[11px] uppercase tracking-[0.14em] text-gray-500">Patient</div>
-                                    <div className="mt-0.5 text-base sm:text-lg font-bold text-gray-900 truncate">{r.patientName}</div>
-                                    <div className="mt-1 inline-flex items-center gap-2 text-xs sm:text-sm text-gray-500">
-                                      <FaReceipt className="text-red-500" />
-                                      <span className="font-mono text-gray-700">{r.orderId}</span>
-                                      <span className="text-gray-300">|</span>
+                                    <div className="text-[11px] uppercase tracking-[0.15em] text-gray-500">Patient Name</div>
+                                    <div className="mt-0.5 text-base sm:text-lg font-bold text-slate-900 truncate">{r.patientName}</div>
+                                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <FaReceipt className="text-red-500" />
+                                        <span className="font-mono text-slate-700">{r.orderId}</span>
+                                      </span>
+                                      <span className="text-gray-300">•</span>
                                       <span>{formatDateTime(r.createdAt)}</span>
                                     </div>
                                   </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${referralStatusClasses(r.status)}`}>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${referralStatusClasses(r.status)}`}>
                                       {r.status}
                                     </span>
-                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${commissionStateClasses(r.commissionState)}`}>
+                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${commissionStateClasses(r.commissionState)}`}>
                                       {r.commissionState ?? "NA"}
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                  <div className="rounded-xl bg-gradient-to-br from-gray-50 to-gray-100/70 px-3 py-2.5">
-                                    <div className="text-[11px] uppercase tracking-wide text-gray-500">Total</div>
-                                    <div className="mt-0.5 font-extrabold text-gray-900">{currency(r.total)}</div>
+                                  <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                                    <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Total</div>
+                                    <div className="mt-1 text-base font-extrabold text-slate-900">{currency(r.total)}</div>
                                   </div>
-                                  <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-3 py-2.5">
-                                    <div className="text-[11px] uppercase tracking-wide text-orange-700">Partner Margin</div>
-                                    <div className="mt-0.5 font-extrabold text-orange-800">{currency(r.partnerMargin ?? 0)}</div>
+                                  <div className="rounded-xl bg-orange-50 px-3 py-2.5">
+                                    <div className="text-[10px] uppercase tracking-[0.12em] text-orange-700">Partner Margin</div>
+                                    <div className="mt-1 text-base font-extrabold text-orange-800">{currency(r.partnerMargin ?? 0)}</div>
                                   </div>
-                                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 px-3 py-2.5">
-                                    <div className="text-[11px] uppercase tracking-wide text-emerald-700">Commission Granted</div>
-                                    <div className="mt-0.5 font-extrabold text-emerald-800">{currency(r.commissionGranted ?? 0)}</div>
+                                  <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
+                                    <div className="text-[10px] uppercase tracking-[0.12em] text-emerald-700">Commission Granted</div>
+                                    <div className="mt-1 text-base font-extrabold text-emerald-800">{currency(r.commissionGranted ?? 0)}</div>
                                   </div>
                                 </div>
                               </div>
