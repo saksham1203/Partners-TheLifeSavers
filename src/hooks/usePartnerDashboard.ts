@@ -14,7 +14,7 @@ import {
 export type PaymentStatus = "paid" | "pending" | "unpaid";
 
 export interface CycleHistoryItem {
-  id: string; startDate: string; endDate: string;
+  id: string; workingCycleId: string; startDate: string; endDate: string;
   totalPatients: number; totalRevenue?: number; totalBonus?: number; totalCommission: number;
   paymentStatus: PaymentStatus; paymentRef?: string | null; paidAt?: string | null;
 }

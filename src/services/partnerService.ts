@@ -70,7 +70,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
   }
 }
 
-const API_BASE = "https://services.thelifesavers.in/api";
+const API_BASE = "http://localhost:5000/api";
 
 async function getAuthToken(): Promise<string | null> {
   try { const { value } = await Preferences.get({ key: "token" }); if (value) return value; } catch {}
@@ -131,6 +131,13 @@ export type BackendDashboard = {
 export type BackendCycles = {
   success: boolean;
   cycles: Array<{
+    id?: string;
+    cycleId?: string;
+    workingCycleId?: string;
+    index?: number;
+    number?: number;
+    status?: string;
+    label?: string;
     start: string; end: string; patients: number; revenue: number; bonus: number; commission: number;
     payout?: { id: string; status: "PAID"|"PENDING"|"UNPAID"; commission: number; patients: number; paidAt?: string; note?: string; } | null;
   }>;
@@ -138,7 +145,26 @@ export type BackendCycles = {
 
 export type BackendReferrals = {
   success: boolean;
-  referrals: Array<{ id: string; orderId: string; patientName: string; status: string; total: number; createdAt: string; }>;
+  cycle?: {
+    cycleId?: string;
+    index?: number;
+    number?: number;
+    status?: string;
+    start?: string;
+    end?: string;
+    label?: string;
+  };
+  referrals: Array<{
+    id: string;
+    orderId: string;
+    patientName: string;
+    status: string;
+    total: number;
+    partnerMargin?: number;
+    commissionGranted?: number;
+    commissionState?: string;
+    createdAt: string;
+  }>;
   nextCursor: string | null;
 };
 
@@ -160,9 +186,9 @@ export async function fetchPartnerCycles(): Promise<BackendCycles> {
   return res.data;
 }
 
-export async function fetchPartnerReferrals(limit = 5, cursor?: string): Promise<BackendReferrals> {
+export async function fetchPartnerReferralsByCycle(workingCycleId: string, limit = 20, cursor?: string): Promise<BackendReferrals> {
   const token = await getAuthToken();
-  const res = await axios.get<BackendReferrals>(`${API_BASE}/partners/me/referrals`, {
+  const res = await axios.get<BackendReferrals>(`${API_BASE}/partners/me/cycles/${workingCycleId}/referrals`, {
     params: { limit, cursor },
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     withCredentials: true,
@@ -173,7 +199,7 @@ export async function fetchPartnerReferrals(limit = 5, cursor?: string): Promise
 export type PaymentStatus = "paid" | "pending" | "unpaid";
 
 export interface CycleHistoryItem {
-  id: string; startDate: string; endDate: string;
+  id: string; workingCycleId: string; startDate: string; endDate: string;
   totalPatients: number; totalRevenue: number; totalBonus: number; totalCommission: number;
   paymentStatus: PaymentStatus; paymentRef?: string | null; paidAt?: string | null;
 }
@@ -181,8 +207,9 @@ export interface CycleHistoryItem {
 export function mapBackendCyclesToHistoryItems(data: BackendCycles): CycleHistoryItem[] {
   return (data.cycles ?? []).map((c) => {
     const payout = c.payout ?? undefined;
+    const workingCycleId = c.workingCycleId ?? c.cycleId ?? c.id ?? `${c.start}-${c.end}`;
     return {
-      id: `${c.start}-${c.end}`, startDate: c.start, endDate: c.end,
+      id: workingCycleId, workingCycleId, startDate: c.start, endDate: c.end,
       totalPatients: c.patients, totalRevenue: c.revenue, totalBonus: c.bonus,
       totalCommission: c.commission,
       paymentStatus: mapPayoutStatusToPaymentStatus(payout?.status),
