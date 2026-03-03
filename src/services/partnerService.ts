@@ -70,7 +70,7 @@ export async function loadPartnerDataFromPrefs(): Promise<LoadedPartnerData> {
   }
 }
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://services.thelifesavers.in/api";
 
 async function getAuthToken(): Promise<string | null> {
   try { const { value } = await Preferences.get({ key: "token" }); if (value) return value; } catch {}
