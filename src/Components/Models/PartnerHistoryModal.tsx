@@ -365,7 +365,7 @@ const PartnerHistoryModal: React.FC<PartnerHistoryModalProps> = ({
                             ) : (
                               <>
                                 <FaAngleDoubleDown className="text-[13px]" />
-                                Load 10 More
+                                Load More
                               </>
                             )}
                           </button>
