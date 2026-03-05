@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
       <div className="flex justify-between items-center h-full px-4">
         <div className="flex items-center space-x-4">
           <span className="text-sm text-gray-800">
-            © 2025 <span className="text-red-600">The Life Savers</span>. All
+            © 2026 <span className="text-red-600">The Life Savers</span>. All
             rights reserved.
           </span>
 

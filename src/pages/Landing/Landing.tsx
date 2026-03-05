@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { FaApple, FaGooglePlay, FaSignInAlt, FaUserPlus } from "react-icons/fa";
 
 const keywords = [
   "Blood Donation",
@@ -231,49 +232,65 @@ const services = [
   {
     icon: "🩸",
     title: "Instant Donor Matching",
-    desc: "Connects receivers with nearby compatible donors in real-time to reduce delays during emergencies.",
+    desc: "Connects recipients with nearby compatible donors in real-time to reduce delays during medical emergencies.",
+  },
+  {
+    icon: "🧑‍⚕️",
+    title: "Lab Test Booking",
+    desc: "Book diagnostic lab tests online from trusted partner labs with transparent pricing, secure payments, and instant confirmations.",
+  },
+  {
+    icon: "🏠",
+    title: "Home Sample Collection",
+    desc: "Schedule safe, hygienic home sample collection by trained phlebotomists and track your pickup and processing status live.",
+  },
+  {
+    icon: "📄",
+    title: "Digital Medical Reports",
+    desc: "Receive authenticated lab reports digitally, stored securely in your profile for easy access and sharing anytime.",
+  },
+  {
+    icon: "💳",
+    title: "Secure Online Payments",
+    desc: "Pay for lab tests confidently through PCI-DSS compliant payment gateways ensuring smooth, encrypted transactions.",
   },
   {
     icon: "👥",
     title: "Live Community Chat",
-    desc: "Real‑time conversations with donors, recipients, volunteers & staff – ask questions, share experiences, or offer help live.",
+    desc: "Interact with donors, recipients, and support teams in real-time to ask questions, offer help, or share updates instantly.",
   },
   {
     icon: "📝",
-    title: "Educational Blogs & Stories",
-    desc: "Informative articles about blood donation facts, health advice, inspiring donor/recipient stories and platform updates.",
+    title: "Educational Blogs & Health Tips",
+    desc: "Explore factual, well-researched articles on blood donation, preventive care, lab tests, healthy living, and wellness.",
   },
   {
     icon: "🔔",
-    title: "Emergency Alerts",
-    desc: "Get alerts when there's a shortage in your area so you can respond quickly and help.",
+    title: "Instant Emergency Alerts",
+    desc: "Stay notified when blood shortages occur in your area or when someone urgently needs a donor matching your blood type.",
   },
   {
-    icon: "💬",
-    title: "Support",
-    desc: "Need help? Our support connects you with our team instantly for any questions.",
-  },
-  {
-    icon: "📣",
-    title: "Awareness Campaigns",
-    desc: "Join community‑led drives, share referral links, and host local events to spread awareness and boost donations.",
+    icon: "⚕️",
+    title: "Health Checkup Reminders",
+    desc: "Get reminders for annual health checkups, preventive screenings, and recommended test packages based on age and lifestyle.",
   },
   {
     icon: "🔒",
     title: "End-to-End Data Security",
-    desc: "All user data, messages, and health info are encrypted and securely stored—privacy and safety are our top priorities.",
+    desc: "Your personal, health, and payment information is encrypted and securely stored with industry-standard protection.",
   },
   {
     icon: "📍",
-    title: "Location-Based Search",
-    desc: "Easily discover donors or receivers near you using smart, GPS-powered search filters tailored to your city or state.",
+    title: "Smart Location-Based Search",
+    desc: "Find donors, receivers, and nearby diagnostic labs with intelligent GPS-powered search and smart filtering.",
   },
   {
     icon: "🧪",
-    title: "Health & Eligibility Guidelines",
-    desc: "Stay informed with clear, up-to-date criteria for safe blood donation, including medical conditions, age, and donation intervals.",
+    title: "Donation Eligibility & Guidelines",
+    desc: "Access updated medical guidelines for safe blood donation, including age, health conditions, intervals, and precautions.",
   },
 ];
+
 
 const AdminsTestimonials = [
   {
@@ -281,7 +298,7 @@ const AdminsTestimonials = [
     image:
       "https://res.cloudinary.com/dqm7wf4zi/image/upload/v1752081662/Himanshu_uhykhh.jpg",
     review:
-      "As the founder, my vision was to build a platform that not only facilitates blood donation but also fosters a community driven by compassion. Seeing lives saved every day through our efforts is truly humbling.",
+      "As the Founder of The Life Savers, my mission has always been to build a reliable platform where people can get help when they need it the most — whether it’s finding a blood donor in an emergency or booking trusted lab tests with home sample collection. Every feature we create is focused on safety, transparency, and accessibility, ensuring that no family feels helpless during critical moments.",
   },
 ];
 
@@ -291,14 +308,14 @@ const testimonials = [
     image:
       "https://res.cloudinary.com/dqm7wf4zi/image/upload/v1752081662/1_hsk6ve.jpg",
     review:
-      "Amazing initiative. I got help for my uncle within 2 hours. Thank you!",
+      "I urgently needed A+ blood for my uncle. The Life Savers connected us to a donor within minutes. Truly life-changing!",
   },
   {
     name: "Lakshay",
     image:
       "https://res.cloudinary.com/dqm7wf4zi/image/upload/v1752081662/2_cabtni.jpg",
     review:
-      "Simple interface, fast response, and real-life impact. A must for every city.",
+      "Booked a full body checkup using the app — smooth payment, home sample collection, and digital report delivered on time. Highly reliable!",
   },
 ];
 
@@ -333,7 +350,6 @@ const StatCard = ({
       {label}
     </p>
     <p className={`text-3xl sm:text-4xl font-bold ${color} min-h-[2.5rem]`}>
-      {/* Reserve height with min-h to avoid layout shift */}
       <CountUp
         end={visible ? value : 0}
         duration={visible ? 2 : 0}
@@ -374,6 +390,7 @@ const Landing: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const initialVisibleCount = 100;
+
   const handleVideoToggle = () => {
     if (videoRef.current) {
       isPlaying ? videoRef.current.pause() : videoRef.current.play();
@@ -405,67 +422,71 @@ const Landing: React.FC = () => {
             transition={{ duration: 1 }}
             className="relative z-0 bg-red-600 text-white py-20 px-6 overflow-hidden"
           >
-            {/* Decorative background */}
             <div
               aria-hidden="true"
               className="absolute inset-0 -skew-y-6 bg-gradient-to-r from-red-700 via-red-500 to-red-400 opacity-90 transform-gpu"
             />
-
             <div className="relative z-10 max-w-4xl mx-auto text-center">
-              {/* Main headline for SEO */}
               <motion.h1
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
                 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4 leading-tight"
               >
-                Donate Blood. Save Lives. Make a Difference.
+                Donate Blood • Book Lab Tests • Home Sample Collection
               </motion.h1>
 
-              {/* Supporting description */}
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
                 className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto"
               >
-                Join a nationwide movement to support urgent blood donation
-                needs.
-                <br className="hidden sm:inline" />
-                Connect with donors and recipients instantly — anytime,
-                anywhere.
+                Fast donor matching for emergencies, secure online lab bookings,
+                and reliable home sample collection with digital reports. Online
+                payments supported for lab services and home pickups.
+                <br />
+                Connect with verified donors, partner labs, and phlebotomists —
+                anytime, anywhere.
               </motion.p>
 
-              {/* CTA Buttons */}
               <motion.div
                 className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
               >
-                <button
-                  onClick={() => navigate("/register")}
-                  className="border border-white text-white font-semibold py-3 px-8 rounded-full hover:bg-white hover:text-red-600 transition duration-300"
-                  aria-label="Join as a Blood Donor"
-                >
-                  Join Us
-                </button>
-                <button
-                  onClick={() => navigate("/login")}
-                  className="border border-white text-white font-semibold py-3 px-8 rounded-full hover:bg-white hover:text-red-600 transition duration-300"
-                  aria-label="Find Blood Donors"
-                >
-                  Find Donors
-                </button>
+                <div className="flex flex-wrap gap-6 justify-center">
+
+                  {/* Register */}
+                  <button
+                    onClick={() => navigate("/register")}
+                    className="group flex items-center gap-2 px-8 py-3 rounded-full font-semibold text-lg text-white bg-red-600 shadow-lg hover:bg-red-700 transition-all duration-300"
+                    aria-label="Join as a Blood Donor"
+                  >
+                    <FaUserPlus className="text-white transition-transform duration-300" />
+                    Partner Register
+                  </button>
+
+                  {/* Find Donors */}
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="group flex items-center gap-2 px-8 py-3 rounded-full font-semibold text-lg text-white bg-red-600 shadow-lg hover:bg-red-700 transition-all duration-300"
+                    aria-label="Find Blood Donors"
+                  >
+                     <FaSignInAlt className="text-white transition-transform duration-300" />
+                    Partner Login
+                  </button>
+                </div>
               </motion.div>
             </div>
           </motion.header>
 
           <main className="py-10 px-4 sm:px-10 space-y-8">
-            {/* Intro/About  */}
+            {/* Intro/About */}
             <section
               ref={introRef}
-              className=" pb-6 px-4 sm:px-10 bg-white text-center"
+              className="pb-6 px-4 sm:px-10 bg-white text-center"
             >
               <motion.h2
                 className="text-3xl sm:text-4xl font-extrabold text-red-600 mb-6"
@@ -473,11 +494,11 @@ const Landing: React.FC = () => {
                 animate={introInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6 }}
               >
-                Every Drop Counts. Every Life Matters.
+                One Platform. Multiple Ways to Save Lives.
               </motion.h2>
 
               <motion.p
-                className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-8"
+                className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-8 leading-relaxed"
                 initial={{ opacity: 0, y: 30 }}
                 animate={introInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.2, duration: 0.6 }}
@@ -485,84 +506,105 @@ const Landing: React.FC = () => {
                 <span className="text-red-600 font-semibold">
                   The Life Savers
                 </span>{" "}
-                is a purpose-driven initiative committed to making life-saving
-                blood donation faster, easier, and more accessible across{" "}
-                <span className="text-red-600 font-semibold">India</span> We
-                connect generous blood donors with patients facing urgent
-                medical emergencies — in real time.
-                <br />
-                <br />
-                Whether you're here to{" "}
+                is a modern digital healthcare platform that helps users with{" "}
                 <span className="text-red-600 font-semibold">
-                  donate blood online
-                </span>{" "}
-                or find a{" "}
+                  urgent blood donor matching
+                </span>
+                ,{" "}
                 <span className="text-red-600 font-semibold">
-                  blood donor near you
-                </span>{" "}
-                , you're already part of something bigger — a compassionate
-                movement that saves lives with every heartbeat.
+                  online lab test booking
+                </span>
+                ,{" "}
+                <span className="text-red-600 font-semibold">
+                  home sample collection
+                </span>
+                , and secure{" "}
+                <span className="text-red-600 font-semibold">
+                  online payments
+                </span>
+                .
+                <br className="hidden sm:block" />
+                Our mission is simple: make reliable healthcare access faster,
+                easier, and available for everyone across{" "}
+                <span className="text-red-600 font-semibold">India</span>.
+              </motion.p>
+
+              <motion.p
+                className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed"
+                initial={{ opacity: 0, y: 30 }}
+                animate={introInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ delay: 0.35, duration: 0.6 }}
+              >
+                Whether it's connecting with compassionate donors during an
+                emergency or getting diagnostic tests done from trusted partner
+                labs — everything is just a few clicks away.
               </motion.p>
 
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={introInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.4, duration: 0.6 }}
+                className="flex justify-center mt-6"
               >
                 <button
                   onClick={() => navigate("/login")}
-                  className="inline-block bg-red-600 text-white text-lg font-semibold py-3 px-8 rounded-full shadow-md hover:bg-red-700 transition"
+                  className="group flex items-center gap-2 px-8 py-3 rounded-full font-semibold text-lg text-white 
+      bg-red-600 shadow-lg hover:bg-red-700 hover:scale-105 transition-all duration-300"
                 >
+                  <span className="text-xl">🚑</span>
                   Become a Lifesaver Today
                 </button>
               </motion.div>
             </section>
 
-            {/* why */}
-            <section className=" px-4 sm:px-10 bg-gradient-to-b to-white text-center">
+            {/* Why Join */}
+            <section className="px-4 sm:px-10 bg-gradient-to-b to-white text-center">
               <SectionTitle title="Why Join Us?" />
+
               <motion.p
-                className="text-lg text-gray-700 max-w-3xl mx-auto mb-14"
+                className="text-lg text-gray-700 max-w-3xl mx-auto mb-14 leading-relaxed"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, duration: 0.6 }}
               >
-                Join a movement that goes beyond donation. Together, we’re
-                building a community of compassion, action, and life-saving
-                impact. Here’s why you should be part of it:
+                Become part of a future-ready platform designed to make
+                healthcare access faster, smarter, and more human. Whether you
+                want to donate blood, book lab tests, or support someone in need
+                — your involvement creates real-world impact.
               </motion.p>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-2">
                 {[
                   {
-                    icon: "🌍",
-                    title: "Make a Real Impact",
-                    desc: "Every action you take helps save lives and brings hope to those in need.",
+                    icon: "❤️",
+                    title: "Save Lives in Real Time",
+                    desc: "Your presence helps patients connect with verified donors and trusted labs within minutes during emergencies.",
                   },
                   {
-                    icon: "🤝",
-                    title: "Be Part of a Community",
-                    desc: "Connect with like-minded individuals who care deeply about helping others.",
+                    icon: "🧪",
+                    title: "Access Reliable Lab Services",
+                    desc: "Book diagnostic tests, track your orders, get home sample collection, and receive digital reports securely.",
+                  },
+                  {
+                    icon: "💳",
+                    title: "Secure Online Payments",
+                    desc: "Pay safely through trusted gateways and receive invoices for all booked healthcare services.",
+                  },
+                  {
+                    icon: "📍",
+                    title: "PAN-India Coverage",
+                    desc: "Find donors or book lab tests from any location — our platform supports users across all major cities.",
+                  },
+                  {
+                    icon: "🔒",
+                    title: "Safe & Verified Community",
+                    desc: "We verify donors, ensure secure data handling, and maintain a safe environment for every interaction.",
                   },
                   {
                     icon: "🚀",
-                    title: "Opportunities to Grow",
-                    desc: "Develop leadership, teamwork, and communication skills through real-world contribution.",
-                  },
-                  {
-                    icon: "⏰",
-                    title: "Flexible Involvement",
-                    desc: "Choose how and when you contribute—every effort counts, big or small.",
-                  },
-                  {
-                    icon: "🏅",
-                    title: "Recognition & Support",
-                    desc: "Your time and dedication are valued and celebrated within our network.",
-                  },
-                  {
-                    icon: "⚡",
-                    title: "Drive Change",
-                    desc: "Play a vital role in transforming how communities respond to emergencies.",
+                    title: "Future-Ready Healthcare",
+                    desc: "Be part of a growing ecosystem offering emergency support, diagnostics, and wellness services in one place.",
                   },
                 ].map((item, i) => (
                   <ServiceCard
@@ -582,7 +624,7 @@ const Landing: React.FC = () => {
               <video
                 ref={videoRef}
                 src="https://res.cloudinary.com/dqm7wf4zi/video/upload/v1734541688/theLifeSaversVideo_mrchef.mp4"
-                poster="https://res.cloudinary.com/dqm7wf4zi/image/upload/v1734541684/thelifesaverslogo_odohxz.png"
+                poster="https://res.cloudinary.com/dqm7wf4zi/image/upload/v1763462027/TLS_-_Logo_eymtr4.png"
                 autoPlay
                 loop
                 muted
@@ -600,7 +642,7 @@ const Landing: React.FC = () => {
               </div>
             </div>
 
-            {/* our services */}
+            {/* Our Services */}
             <section
               ref={serviceRef}
               className=" px-4 sm:px-10 bg-gradient-to-b to-white text-center"
@@ -612,8 +654,11 @@ const Landing: React.FC = () => {
                 animate={serviceInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.2, duration: 0.6 }}
               >
-                We are committed to saving lives by bridging the gap between
-                blood donors and those in urgent need. Here’s how we help:
+                We bridge urgent donor needs and reliable diagnostics — all
+                through one trusted platform. Book lab tests, schedule home
+                sample collection, pay online, and receive secure digital
+                reports — plus access regular health checkup packages and
+                verified partner labs across India.
               </motion.p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-2">
                 {services.map((s, i) => (
@@ -625,6 +670,54 @@ const Landing: React.FC = () => {
                   />
                 ))}
               </div>
+            </section>
+
+            {/* Mobile App Promotion */}
+            <section className="px-4 sm:px-10 py-16 bg-white text-center">
+              {/* Title */}
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-red-600 mb-6">
+                Find Blood Donors Faster on Our Mobile App
+              </h2>
+
+              {/* Description */}
+              <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-10 leading-relaxed">
+                Search for nearby blood donors, receive emergency alerts, book
+                lab tests, and track home sample collection — all in one simple
+                and reliable{" "}
+                <span className="font-semibold text-red-600">mobile app</span>.
+              </p>
+
+              {/* App Buttons */}
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
+                {/* Android */}
+                <a
+                  href="https://play.google.com/store/apps/details?id=in.thelifesavers.app&pcampaignid=web_share"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-8 py-3 rounded-full font-semibold text-lg 
+                 text-white bg-red-600 shadow-lg hover:bg-red-700 transition-all duration-300"
+                >
+                  <FaGooglePlay size={22} />
+                  Android App
+                </a>
+
+                {/* iOS */}
+                <a
+                  href="https://apps.apple.com/in/app/the-life-savers/id6748567888"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-8 py-3 rounded-full font-semibold text-lg 
+                 text-white bg-red-600 shadow-lg hover:bg-red-700 transition-all duration-300"
+                >
+                  <FaApple size={22} />
+                  IOS App
+                </a>
+              </div>
+
+              {/* Helper text */}
+              <p className="mt-6 text-sm text-gray-500">
+                Available on Android & iOS • Free to download
+              </p>
             </section>
 
             {/* Stats */}
@@ -656,9 +749,10 @@ const Landing: React.FC = () => {
               </div>
             </section>
 
-            {/* LIfe savers - trust secure */}
+            {/* Life Savers - trust secure */}
             <section className=" px-4 sm:px-10 bg-gradient-to-b to-white text-center">
-              <SectionTitle title="The Life Savers – Safe, Secure and Trusted" />
+              <SectionTitle title="The Life Savers – Safe, Secure & Reliable Healthcare Support" />
+
               <motion.p
                 className="text-lg text-gray-700 max-w-3xl mx-auto mb-14"
                 initial={{ opacity: 0, y: 20 }}
@@ -666,26 +760,48 @@ const Landing: React.FC = () => {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, duration: 0.6 }}
               >
-                Meet the real heroes behind the mission. Our platform brings
-                together verified, compassionate donors and ensures every
-                connection is private, safe, and trustworthy.
+                Your trust is at the heart of everything we do.
+                <span className="text-red-600 font-semibold">
+                  {" "}
+                  The Life Savers{" "}
+                </span>
+                ensures complete safety, transparency, and reliability across
+                all services— from donor–receiver connections to lab test
+                bookings, home sample collection, secure online payments, and
+                digital medical report delivery.
               </motion.p>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto px-2">
                 {[
                   {
                     icon: "🔐",
-                    title: "End-to-End Data Security",
-                    desc: "All user data, messages, and health info are encrypted and securely stored—privacy and safety are our top priorities.",
+                    title: "Advanced Data Privacy & Encryption",
+                    desc: "Your personal details, health records, and chats are protected using industry-grade encryption and secure storage protocols.",
                   },
                   {
-                    icon: "✅",
-                    title: "Community-Backed Trust",
-                    desc: "Ratings, reviews, and a transparent history help ensure trusted, reliable interactions at every step.",
+                    icon: "🧪",
+                    title: "Trusted & Verified Partner Labs",
+                    desc: "We work only with accredited diagnostic labs and trained phlebotomists to ensure safe, hygienic and reliable healthcare services.",
                   },
                   {
-                    icon: "🔄",
-                    title: "Regular Platform Updates",
-                    desc: "Stay informed with the latest features, safety guidelines, and donor community news to keep you engaged and aware.",
+                    icon: "💳",
+                    title: "Secure Online Payments",
+                    desc: "All payments for lab tests are processed through trusted, PCI-DSS-compliant payment gateways ensuring complete transaction safety.",
+                  },
+                  {
+                    icon: "📦",
+                    title: "Quality Assurance & Monitoring",
+                    desc: "From sample handling to report generation, every process follows strict quality checks to maintain accuracy and reliability.",
+                  },
+                  {
+                    icon: "📱",
+                    title: "Regular Platform Improvements",
+                    desc: "We constantly update our system with new features, stronger security, and better user experience based on community feedback.",
+                  },
+                  {
+                    icon: "🤝",
+                    title: "Safe & Verified Community",
+                    desc: "Our donor and receiver network includes only verified users, ensuring safer interactions and more reliable support during emergencies.",
                   },
                 ].map((item, i) => (
                   <ServiceCard
@@ -700,7 +816,7 @@ const Landing: React.FC = () => {
               </div>
             </section>
 
-            {/* table */}
+            {/* Table */}
             <section>
               <SectionTitle title="Compatible Blood Type Donors" />
               <div className="overflow-x-auto">
@@ -735,12 +851,9 @@ const Landing: React.FC = () => {
                           i % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-red-50`}
                       >
-                        {/* Blood Group with drop emoji */}
                         <td className="px-6 py-4 font-bold text-red-700 text-lg">
                           🩸 {row[0]}
                         </td>
-
-                        {/* Donate To */}
                         <td className="px-6 py-4">
                           <div className="flex justify-center flex-wrap gap-1">
                             {row[1].split(", ").map((type, idx) => (
@@ -753,8 +866,6 @@ const Landing: React.FC = () => {
                             ))}
                           </div>
                         </td>
-
-                        {/* Receive From */}
                         <td className="px-6 py-4">
                           <div className="flex justify-center flex-wrap gap-1">
                             {row[2] === "Everyone" ? (
@@ -780,14 +891,10 @@ const Landing: React.FC = () => {
               </div>
             </section>
 
-            {/* Life Savers hero speakes */}
+            {/* Testimonials */}
             <section className="px-4 sm:px-10 bg-gradient-to-b to-white text-center">
-              {/* Section Title */}
               <SectionTitle title="Life Saver Heroes Speak" />
-
-              {/* Flex container to hold both sliders side-by-side on desktop */}
               <div className="flex flex-col lg:flex-row justify-center gap-6">
-                {/* First Slider */}
                 <motion.div
                   className="w-full lg:w-1/2"
                   initial={{ opacity: 0, y: 40 }}
@@ -829,11 +936,9 @@ const Landing: React.FC = () => {
                             >
                               <path d="M7.17 5.59A6 6 0 001 12v7h6v-7H4a4 4 0 014-4V5.59zm9 0A6 6 0 0010 12v7h6v-7h-3a4 4 0 014-4V5.59z" />
                             </svg>
-
                             <p className="text-base italic text-gray-700 mb-2">
                               {t.review}
                             </p>
-
                             <div className="flex justify-end">
                               <svg
                                 className="w-6 h-6 text-red-400 mt-2"
@@ -843,7 +948,6 @@ const Landing: React.FC = () => {
                                 <path d="M16.83 18.41A6 6 0 0023 12V5h-6v7h3a4 4 0 01-4 4v2.41zm-9 0A6 6 0 0014 12V5H8v7h3a4 4 0 01-4 4v2.41z" />
                               </svg>
                             </div>
-
                             <div className="flex justify-end mt-4">
                               <p className="text-sm sm:text-base font-semibold text-red-600 tracking-wide italic drop-shadow-sm">
                                 — {t.name}
@@ -856,7 +960,6 @@ const Landing: React.FC = () => {
                   ))}
                 </motion.div>
 
-                {/* Second Slider - exact same structure */}
                 <motion.div
                   className="w-full lg:w-1/2"
                   initial={{ opacity: 0, y: 40 }}
@@ -909,11 +1012,9 @@ const Landing: React.FC = () => {
                               >
                                 <path d="M7.17 5.59A6 6 0 001 12v7h6v-7H4a4 4 0 014-4V5.59zm9 0A6 6 0 0010 12v7h6v-7h-3a4 4 0 014-4V5.59z" />
                               </svg>
-
                               <p className="text-base italic text-gray-700 mb-2">
                                 {t.review}
                               </p>
-
                               <div className="flex justify-end">
                                 <svg
                                   className="w-6 h-6 text-red-400 mt-2"
@@ -923,7 +1024,6 @@ const Landing: React.FC = () => {
                                   <path d="M16.83 18.41A6 6 0 0023 12V5h-6v7h3a4 4 0 01-4 4v2.41zm-9 0A6 6 0 0014 12V5H8v7h3a4 4 0 01-4 4v2.41z" />
                                 </svg>
                               </div>
-
                               <div className="flex justify-end mt-4">
                                 <p className="text-sm sm:text-base font-semibold text-red-600 tracking-wide italic drop-shadow-sm">
                                   — {t.name}
@@ -940,8 +1040,8 @@ const Landing: React.FC = () => {
             </section>
           </main>
 
+          {/* Footer */}
           <footer className="py-16 px-4 sm:px-10 bg-gradient-to-b to-white text-center">
-            {/* Keywords list */}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-2 mb-6">
               {keywords.map((keyword, index) => (
                 <div
@@ -965,7 +1065,6 @@ const Landing: React.FC = () => {
               ))}
             </div>
 
-            {/* Show More / Less Button */}
             {keywords.length > initialVisibleCount && (
               <button
                 onClick={() => setShowAll(!showAll)}
@@ -975,9 +1074,8 @@ const Landing: React.FC = () => {
               </button>
             )}
 
-            {/* Footer Text */}
             <p className="text-md sm:text-lg max-w-3xl mx-auto">
-              © 2025{" "}
+              © 2026{" "}
               <span className="text-red-600 font-semibold">
                 The Life Savers.
               </span>{" "}

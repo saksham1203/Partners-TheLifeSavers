@@ -29,7 +29,7 @@ const Header: React.FC = () => {
 
   const sidebarRef = useRef<HTMLDivElement>(null);
   const mobileSidebarRef = useRef<HTMLDivElement>(null);
-  const [platform, setPlatform] = useState("web");
+  const [, setPlatform] = useState("web");
 
   // Toggle the main sidebar
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
@@ -103,24 +103,20 @@ const Header: React.FC = () => {
         } h-12 text-gray-800 z-10`}
       > */}
       <div
-        className={`fixed top-0 left-0 right-0 transition-all duration-[800ms] ease-in-out shadow-md ${
-          isScrolled
+        className={`fixed top-0 left-0 right-0 transition-all duration-[800ms] ease-in-out shadow-md ${isScrolled
             ? "w-[85%] rounded-l-full rounded-r-full mx-auto bg-white/95 shadow-md"
             : "w-full bg-white"
-        } h-12 text-gray-800 z-10`}
-        style={{
-          marginTop: platform === "android" ? "26px" : "",
-        }}
+          } text-gray-800 z-10`}
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex justify-between items-center h-full px-4">
           {/* Logo and Title */}
           <div className="flex items-center">
             <img
-              src="https://res.cloudinary.com/dqm7wf4zi/image/upload/v1734541684/thelifesaverslogo_odohxz.png"
+              src="https://res.cloudinary.com/dqm7wf4zi/image/upload/v1763462027/TLS_-_Logo_eymtr4.png"
               alt="The Life Savers Logo"
-              className={`transition-transform duration-500 ${
-                isScrolled ? "h-7 w-7" : "h-12 w-16"
-              }`}
+              className={`transition-transform duration-500 ${isScrolled ? "h-7 w-7" : "h-11 w-12"
+                }`}
               loading="eager" // This helps to prioritize loading the image as soon as possible
             />
 
@@ -229,7 +225,7 @@ const Header: React.FC = () => {
               {
                 to: "/learn-about-donation",
                 icon: <FaTint className="mr-2 text-xl" />,
-                label: "Learn About Donation",
+                label: "Learn About Blood Donation & Health Checks",
               },
               {
                 to: "/terms-and-conditions",
@@ -306,7 +302,7 @@ const Header: React.FC = () => {
               {
                 to: "/learn-about-donation",
                 icon: <FaTint className="mr-2 text-xl" />,
-                label: "Learn About Donation",
+                label: "Learn About Blood Donation & Health Checks",
               },
               {
                 to: "/blogs",
