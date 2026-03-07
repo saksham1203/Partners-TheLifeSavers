@@ -117,24 +117,25 @@ const Pricing: React.FC = () => {
 
           {/* Table */}
           <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
-            <table className="w-full text-sm sm:text-sm border-collapse">
+            <table className="w-full table-fixed text-xs sm:text-sm border-collapse">
               
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-3 sm:px-4 py-3 text-left uppercase tracking-wide whitespace-nowrap">
+                  <th className="w-[40px] sm:w-auto px-2 sm:px-4 py-3 text-left uppercase tracking-wide whitespace-nowrap">
                     S.No
                   </th>
-                  <th className="px-3 sm:px-4 py-3 text-left uppercase tracking-wide">
+                  <th className="px-2 sm:px-4 py-3 text-left uppercase tracking-wide">
                     Name
                   </th>
-                  <th className="px-3 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
+                  <th className="w-[56px] sm:w-auto px-2 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
                     MRP
                   </th>
-                  <th className="px-3 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
+                  <th className="w-[56px] sm:w-auto px-2 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
                     B2P
                   </th>
-                  <th className="px-3 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
-                    Margin
+                  <th className="w-[64px] sm:w-auto px-2 sm:px-4 py-3 text-right uppercase whitespace-nowrap">
+                    <span className="sm:hidden">Mg</span>
+                    <span className="hidden sm:inline">Margin</span>
                   </th>
                 </tr>
               </thead>
@@ -184,23 +185,23 @@ const Pricing: React.FC = () => {
                   !error &&
                   visibleItems.map((i, index) => (
                     <tr key={i.name} className="hover:bg-gray-50 transition">
-                      <td className="px-3 sm:px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
+                      <td className="px-2 sm:px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
                         {index + 1}
                       </td>
-                      <td className="px-3 sm:px-4 py-3 font-medium text-gray-800 break-words">
+                      <td className="px-2 sm:px-4 py-3 font-medium text-gray-800 break-words">
                         {i.name}
                       </td>
 
-                      <td className="px-3 sm:px-4 py-3 text-right font-semibold whitespace-nowrap">
+                      <td className="px-2 sm:px-4 py-3 text-right font-semibold whitespace-nowrap">
                         ₹{i.mrp}
                       </td>
 
-                      <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
                         ₹{i.b2p}
                       </td>
 
-                      <td className="px-3 sm:px-4 py-3 text-right">
-                        <span className="inline-flex items-center justify-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
+                      <td className="px-2 sm:px-4 py-3 text-right">
+                        <span className="inline-flex items-center justify-center px-1.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
                           ₹{i.margin}
                         </span>
                       </td>
