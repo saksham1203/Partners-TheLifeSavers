@@ -13,6 +13,19 @@ const Pricing: React.FC = () => {
   const { type, setType, items, loading, error, search, setSearch } =
     usePartnerPricing(activeLab);
 
+  const hasValidAmount = (value: unknown, allowZero = false) => {
+    const num = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(num)) return false;
+    return allowZero ? num >= 0 : num > 0;
+  };
+
+  const visibleItems = items.filter(
+    (item) =>
+      hasValidAmount(item.mrp) &&
+      hasValidAmount(item.b2p) &&
+      hasValidAmount(item.margin, true)
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex justify-center p-4 sm:p-6 pt-20 sm:pt-24 lg:pt-20 mb-8">
       <div className="bg-white rounded-2xl shadow-xl max-w-6xl w-full overflow-hidden">
@@ -26,11 +39,11 @@ const Pricing: React.FC = () => {
             <FaArrowLeft />
           </button>
 
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl sm:text-3xl font-bold tracking-tight">
             Partner Pricing
           </h1>
 
-          <p className="mt-2 text-sm opacity-90">
+          <p className="mt-2 text-base sm:text-sm opacity-90">
             B2P pricing & partner earnings
           </p>
         </div>
@@ -44,7 +57,7 @@ const Pricing: React.FC = () => {
               <button
                 key={lab}
                 onClick={() => setActiveLab(lab as LabType)}
-                className={`px-4 sm:px-5 py-2 rounded-full font-semibold transition ${
+                className={`px-4 sm:px-5 py-2 rounded-full text-base sm:text-sm font-semibold transition ${
                   activeLab === lab
                     ? "bg-red-600 text-white shadow-md scale-105"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -67,7 +80,7 @@ const Pricing: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => setType("test")}
-                className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold ${
+                className={`px-4 py-2 rounded-full flex items-center gap-2 text-base sm:text-sm font-bold ${
                   type === "test"
                     ? "bg-red-500 text-white"
                     : "bg-gray-100 text-gray-700"
@@ -79,7 +92,7 @@ const Pricing: React.FC = () => {
 
               <button
                 onClick={() => setType("package")}
-                className={`px-4 py-2 rounded-full flex items-center gap-2 text-sm font-bold ${
+                className={`px-4 py-2 rounded-full flex items-center gap-2 text-base sm:text-sm font-bold ${
                   type === "package"
                     ? "bg-red-500 text-white"
                     : "bg-gray-100 text-gray-700"
@@ -97,17 +110,20 @@ const Pricing: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search test or package"
-                className="w-full pl-10 pr-4 py-2 text-sm border rounded-full focus:ring-2 focus:ring-red-400"
+                className="w-full pl-10 pr-4 py-2 text-base sm:text-sm border rounded-full focus:ring-2 focus:ring-red-400"
               />
             </div>
           </div>
 
           {/* Table */}
           <div className="rounded-xl overflow-hidden border border-gray-200 bg-white">
-            <table className="w-full text-xs sm:text-sm border-collapse">
+            <table className="w-full text-sm sm:text-sm border-collapse">
               
               <thead className="bg-gray-100 border-b border-gray-200">
                 <tr>
+                  <th className="px-3 sm:px-4 py-3 text-left uppercase tracking-wide whitespace-nowrap">
+                    S.No
+                  </th>
                   <th className="px-3 sm:px-4 py-3 text-left uppercase tracking-wide">
                     Name
                   </th>
@@ -128,7 +144,7 @@ const Pricing: React.FC = () => {
                 {/* ✅ Loading */}
                 {loading && (
                   <tr>
-                    <td colSpan={4} className="py-10 text-center">
+                    <td colSpan={5} className="py-10 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="h-8 w-8 border-4 border-red-200 border-t-red-600 rounded-full animate-spin" />
                         <span className="text-sm font-semibold text-red-600">
@@ -143,7 +159,7 @@ const Pricing: React.FC = () => {
                 {!loading && error && (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="py-8 text-center text-red-500 font-medium"
                     >
                       {error}
@@ -152,10 +168,10 @@ const Pricing: React.FC = () => {
                 )}
 
                 {/* ✅ Empty State */}
-                {!loading && !error && items.length === 0 && (
+                {!loading && !error && visibleItems.length === 0 && (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="py-8 text-center text-gray-400"
                     >
                       No pricing available
@@ -166,8 +182,11 @@ const Pricing: React.FC = () => {
                 {/* ✅ Data */}
                 {!loading &&
                   !error &&
-                  items.map((i) => (
+                  visibleItems.map((i, index) => (
                     <tr key={i.name} className="hover:bg-gray-50 transition">
+                      <td className="px-3 sm:px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
+                        {index + 1}
+                      </td>
                       <td className="px-3 sm:px-4 py-3 font-medium text-gray-800 break-words">
                         {i.name}
                       </td>
@@ -181,7 +200,7 @@ const Pricing: React.FC = () => {
                       </td>
 
                       <td className="px-3 sm:px-4 py-3 text-right">
-                        <span className="inline-flex items-center justify-center px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
                           ₹{i.margin}
                         </span>
                       </td>

@@ -31,7 +31,7 @@ forgotPasswordAPI.interceptors.request.use(
  */
 export const sendOtpToEmail = async (email: string): Promise<AxiosResponse<any>> => {
   try {
-    const { data } = await forgotPasswordAPI.post("/forgot-password", { email });
+    const { data } = await forgotPasswordAPI.post("/partner/forgot-password", { email });
     return data;
   } catch (error: any) {
     console.error("Failed to send OTP:", error);
@@ -49,7 +49,7 @@ export const resetPassword = async (
   newPassword: string
 ): Promise<AxiosResponse<any>> => {
   try {
-    const { data } = await forgotPasswordAPI.post("/reset-password", {
+    const { data } = await forgotPasswordAPI.post("/partner/reset-password", {
       email,
       otp,
       newPassword,

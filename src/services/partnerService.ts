@@ -9,10 +9,10 @@ export interface Milestone {
 }
 
 export const MILESTONES: Milestone[] = [
-  { min: 0, max: 99, rate: 0 },
-  { min: 100, max: 199, rate: 5 },
-  { min: 200, max: 399, rate: 8 },
-  { min: 400, max: null, rate: 10 },
+  { min: 0, max: 4999, rate: 0 },
+  { min: 5000, max: 7999, rate: 5 },
+  { min: 8000, max: 9999, rate: 8 },
+  { min: 10000, max: null, rate: 10 },
 ];
 
 export const DEFAULT_PROMO_CODE = "LSAVE123";
