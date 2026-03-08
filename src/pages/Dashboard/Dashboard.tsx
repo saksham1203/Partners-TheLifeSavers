@@ -96,49 +96,49 @@ const MilestoneStepper: React.FC<{
   );
 
   return (
-    <div className="w-full flex items-center">
-      {milestones.map((m, i) => {
-        const reached = i <= idx;
-        const isCurrent = i === idx;
-        const label = m.max === null ? `${m.min}+` : `${m.min}–${m.max}`;
+    <div className="w-full flex items-start">
+        {milestones.map((m, i) => {
+          const reached = i <= idx;
+          const isCurrent = i === idx;
+          const label = m.max === null ? `${m.min}+` : `${m.min}-${m.max}`;
 
-        return (
-          <React.Fragment key={i}>
-            <motion.div
-              animate={{ scale: isCurrent ? [1, 1.1, 1] : 1 }}
-              transition={{ repeat: isCurrent ? Infinity : 0, duration: 1 }}
-              className="flex flex-col items-center text-center min-w-0 flex-1"
-            >
-              <div
-                className={`flex items-center justify-center w-14 h-14 rounded-full border-2 shadow-md text-sm font-bold ${
-                  reached
-                    ? "bg-gradient-to-br from-red-600 to-orange-500 text-white border-red-600"
-                    : "bg-gray-100 text-gray-400 border-gray-300"
-                }`}
+          return (
+            <React.Fragment key={i}>
+              <motion.div
+                animate={{ scale: isCurrent ? [1, 1.1, 1] : 1 }}
+                transition={{ repeat: isCurrent ? Infinity : 0, duration: 1 }}
+                className="flex min-w-0 flex-1 flex-col items-center text-center"
               >
-                {m.rate}%
-              </div>
-              <span
-                className={`mt-1 text-xs font-semibold ${
-                  reached ? "text-red-700" : "text-gray-500"
-                }`}
-              >
-                {label}
-              </span>
-              <span className="text-[10px] text-gray-400">Revenue</span>
-            </motion.div>
-            {i < milestones.length - 1 && (
-              <div
-                className={`h-1 flex-1 mx-2 rounded-full ${
-                  i < idx
-                    ? "bg-gradient-to-r from-red-600 to-orange-500"
-                    : "bg-gray-300"
-                }`}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
+                <div
+                  className={`flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full border-2 shadow-md text-xs sm:text-sm font-bold ${
+                    reached
+                      ? "bg-gradient-to-br from-red-600 to-orange-500 text-white border-red-600"
+                      : "bg-gray-100 text-gray-400 border-gray-300"
+                  }`}
+                >
+                  {m.rate}%
+                </div>
+                <span
+                  className={`mt-1 text-[10px] sm:text-xs font-semibold ${
+                    reached ? "text-red-700" : "text-gray-500"
+                  }`}
+                >
+                  {label}
+                </span>
+                <span className="text-[9px] sm:text-[10px] text-gray-400">Revenue</span>
+              </motion.div>
+              {i < milestones.length - 1 && (
+                <div
+                  className={`mx-1 sm:mx-2 mt-5 sm:mt-7 self-start h-1 flex-1 rounded-full ${
+                    i < idx
+                      ? "bg-gradient-to-r from-red-600 to-orange-500"
+                      : "bg-gray-300"
+                  }`}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
     </div>
   );
 });
@@ -565,3 +565,4 @@ const PartnerDashboardInner: React.FC = () => {
 const PartnerDashboard = React.memo(PartnerDashboardInner);
 PartnerDashboard.displayName = "PartnerDashboard";
 export default PartnerDashboard;
+
