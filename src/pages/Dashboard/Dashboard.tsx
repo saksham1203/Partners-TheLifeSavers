@@ -319,8 +319,9 @@ const PartnerDashboardInner: React.FC = () => {
               </div>
             </div>
 
-            {/* Rewards Card */}
-            <SectionCard
+            {/* Rewards Card (desktop/tablet only) */}
+            <div className="hidden lg:block">
+              <SectionCard
               title={
                 <span className="flex items-center gap-2">
                   <FaGift /> Rewards & Bonuses
@@ -341,7 +342,8 @@ const PartnerDashboardInner: React.FC = () => {
                   </p>
                 </div>
               </div>
-            </SectionCard>
+              </SectionCard>
+            </div>
           </div>
 
           {/* ── RIGHT COLUMN ── */}
@@ -417,6 +419,32 @@ const PartnerDashboardInner: React.FC = () => {
                 </div>
               </div>
             </SectionCard>
+
+            {/* Rewards Card (mobile only: after summary) */}
+            <div className="lg:hidden">
+              <SectionCard
+              title={
+                <span className="flex items-center gap-2">
+                  <FaGift /> Rewards & Bonuses
+                </span>
+              }
+            >
+              <div className="w-full mt-2">
+                <div className="w-full px-6 py-6 bg-gradient-to-r from-yellow-100 via-pink-100 to-purple-100 rounded-xl shadow-md border border-yellow-200 text-center">
+                  <div className="text-lg lg:text-xl font-bold text-gray-800">
+                    🎁 Coming Soon
+                  </div>
+                  <p className="text-sm lg:text-base text-gray-700 mt-1 leading-relaxed">
+                    ✨ Extra{" "}
+                    <span className="font-bold text-red-600">cashback</span> +
+                    <span className="font-bold text-indigo-600"> badges</span>{" "}
+                    <br />
+                    for top-performing partners! 🏆
+                  </p>
+                </div>
+              </div>
+              </SectionCard>
+            </div>
 
             {/* Share CTA */}
             <div className="rounded-2xl border border-red-100 bg-white/90 p-4">
