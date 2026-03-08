@@ -248,14 +248,27 @@ export const usePartnerDashboard = () => {
   const getIndex = React.useCallback((value: number) => getMilestoneIndex(value, dynamicMilestones), [dynamicMilestones]);
   const [, setLastMilestoneIndex] = React.useState<number>(-1);
   const lastMilestoneIndexRef = React.useRef<number>(-1);
+  const confettiInitRef = React.useRef(false);
   const confettiTimerRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     const idx = getIndex(revenue);
-    if (idx > lastMilestoneIndexRef.current) {
+    if (!confettiInitRef.current) {
+      // Baseline on first load/refresh: do not celebrate initial tier.
+      setLastMilestoneIndex(idx);
+      lastMilestoneIndexRef.current = idx;
+      confettiInitRef.current = true;
+      return;
+    }
+
+    // Celebrate only upward tier movement, and never for the 0% base tier.
+    if (idx > lastMilestoneIndexRef.current && idx > 0) {
       setShowConfetti(true); setLastMilestoneIndex(idx); lastMilestoneIndexRef.current = idx;
       if (confettiTimerRef.current) { window.clearTimeout(confettiTimerRef.current); confettiTimerRef.current = null; }
       confettiTimerRef.current = window.setTimeout(() => { setShowConfetti(false); confettiTimerRef.current = null; }, 5000);
+    } else if (idx !== lastMilestoneIndexRef.current) {
+      setLastMilestoneIndex(idx);
+      lastMilestoneIndexRef.current = idx;
     }
     return () => { if (confettiTimerRef.current) { window.clearTimeout(confettiTimerRef.current); confettiTimerRef.current = null; } };
   }, [revenue, getIndex]);
