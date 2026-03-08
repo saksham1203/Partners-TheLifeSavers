@@ -204,6 +204,12 @@ const PartnerDashboardInner: React.FC = () => {
   const closeBank = React.useCallback(() => setIsBankOpen(false), []);
 
   const fhcDialogRef = useRef<HTMLDivElement>(null);
+  const hasBreakdown = baseCommission > 0 || bonusEarned > 0;
+  const commissionEarnedValue = hasBreakdown ? baseCommission : commission;
+  const bonusEarnedValue = hasBreakdown ? bonusEarned : 0;
+  const totalCommissionValue = hasBreakdown
+    ? baseCommission + bonusEarned
+    : commission;
 
   return (
     <div
@@ -299,23 +305,29 @@ const PartnerDashboardInner: React.FC = () => {
             </SectionCard>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
-                <FaUserFriends size={28} className="mb-2" />
-                <div className="text-4xl lg:text-5xl font-extrabold">{patients}</div>
-                <div className="text-sm uppercase tracking-wider">Patients Referred</div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
+                <FaUserFriends size={22} className="mb-1.5 sm:mb-2" />
+                <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold">{patients}</div>
+                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Patients Referred</div>
               </div>
 
-              <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
-                <FaRupeeSign size={28} className="mb-2" />
-                <div className="text-4xl lg:text-5xl font-extrabold">₹{commission}</div>
-                <div className="text-sm uppercase tracking-wider">Commission Earned</div>
-                {/* Show base + bonus breakdown when a bonus is active */}
-                {isBonusApplied && bonusEarned > 0 && (
-                  <div className="mt-1 text-xs text-green-100 font-medium">
-                    ₹{baseCommission} base + ₹{bonusEarned} bonus
-                  </div>
-                )}
+              <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
+                <FaRupeeSign size={22} className="mb-1.5 sm:mb-2" />
+                <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold">Rs {commissionEarnedValue}</div>
+                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Commission Earned</div>
+              </div>
+
+              <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
+                <FaRupeeSign size={22} className="mb-1.5 sm:mb-2" />
+                <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold">Rs {bonusEarnedValue}</div>
+                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Bonus Earned</div>
+              </div>
+
+              <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
+                <FaRupeeSign size={22} className="mb-1.5 sm:mb-2" />
+                <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold">Rs {totalCommissionValue}</div>
+                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Total Commission</div>
               </div>
             </div>
 
@@ -565,4 +577,5 @@ const PartnerDashboardInner: React.FC = () => {
 const PartnerDashboard = React.memo(PartnerDashboardInner);
 PartnerDashboard.displayName = "PartnerDashboard";
 export default PartnerDashboard;
+
 
