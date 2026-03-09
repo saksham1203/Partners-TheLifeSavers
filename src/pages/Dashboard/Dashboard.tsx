@@ -285,7 +285,7 @@ const PartnerDashboardInner: React.FC = () => {
 
             {/* Promo Code */}
             <SectionCard
-              title={<span className="flex items-center gap-2">🎟️ Your Promo Code</span>}
+              title={<span className="flex items-center gap-2">🎟️ Your Referral  Code</span>}
               right={
                 <CopyToClipboard text={promoCode} onCopy={() => setCopied(true)}>
                   <button className="px-3 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm shadow hover:scale-105 transition flex items-center gap-2">
@@ -315,7 +315,7 @@ const PartnerDashboardInner: React.FC = () => {
               <div className="rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
                 <FaRupeeSign size={22} className="mb-1.5 sm:mb-2" />
                 <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold">Rs {commissionEarnedValue}</div>
-                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Commission Earned</div>
+                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Partner Earnings</div>
               </div>
 
               <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
@@ -327,7 +327,7 @@ const PartnerDashboardInner: React.FC = () => {
               <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white p-4 sm:p-6 lg:p-8 shadow-md flex flex-col items-center justify-center hover:scale-105 transform transition">
                 <FaRupeeSign size={22} className="mb-1.5 sm:mb-2" />
                 <div className="text-2xl sm:text-4xl lg:text-5xl font-extrabold">Rs {totalCommissionValue}</div>
-                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Total Commission</div>
+                <div className="text-[10px] sm:text-sm uppercase tracking-wider text-center">Total Partner Earnings</div>
               </div>
             </div>
 
@@ -415,7 +415,7 @@ const PartnerDashboardInner: React.FC = () => {
                   <div className="text-2xl lg:text-lg font-extrabold text-green-700">
                     ₹{commission}
                   </div>
-                  <div className="text-xs text-gray-600">Total Commission</div>
+                  <div className="text-xs text-gray-600">Total Partner Earnings</div>
                   {isBonusApplied && bonusEarned > 0 && (
                     <div className="text-[10px] text-green-600 mt-0.5 font-medium">
                       ₹{baseCommission} + ₹{bonusEarned} bonus
