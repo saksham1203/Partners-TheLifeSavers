@@ -11,7 +11,7 @@ import {
 } from "react-icons/fa";
 import { fetchPartnerReferralsByCycle } from "../../services/partnerService";
 
-export type PaymentStatus = "paid" | "pending" | "unpaid";
+export type PaymentStatus = "paid" | "pending" | "cancelled" | "unpaid";
 
 export interface CycleHistoryItem {
   id: string;
@@ -49,12 +49,14 @@ const LOAD_MORE_REFERRALS_LIMIT = 10;
 const statusClasses: Record<PaymentStatus, string> = {
   paid: "bg-green-100 text-green-700 border-green-200",
   pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  cancelled: "bg-gray-100 text-gray-700 border-gray-200",
   unpaid: "bg-red-100 text-red-700 border-red-200",
 };
 
 const statusIcon: Record<PaymentStatus, React.ReactNode> = {
   paid: <FaCheckCircle className="inline -mt-0.5" />,
   pending: <FaClock className="inline -mt-0.5" />,
+  cancelled: <FaTimesCircle className="inline -mt-0.5" />,
   unpaid: <FaTimesCircle className="inline -mt-0.5" />,
 };
 
@@ -84,6 +86,8 @@ const formatDate = (iso?: string | null) =>
   iso ? new Date(iso).toDateString() : "-";
 const formatDateTime = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "-";
+const formatPaymentRef = (ref?: string | null) =>
+  ref === "AUTO_ZERO_EARNING_CYCLE" ? "Auto-cancelled (0 earning)" : ref;
 
 const currency = (n: number) => `Rs ${n.toLocaleString("en-IN")}`;
 
@@ -258,7 +262,7 @@ const PartnerHistoryModal: React.FC<PartnerHistoryModalProps> = ({
                           <span>
                             Ref:{" "}
                             <span className="font-mono text-gray-700 break-all">
-                              {c.paymentRef}
+                              {formatPaymentRef(c.paymentRef)}
                             </span>
                           </span>
                         )}

@@ -11,7 +11,7 @@ import {
   type CycleHistoryItem as ServiceCycleHistoryItem,
 } from "../services/partnerService";
 
-export type PaymentStatus = "paid" | "pending" | "unpaid";
+export type PaymentStatus = "paid" | "pending" | "cancelled" | "unpaid";
 
 export interface CycleHistoryItem {
   id: string; workingCycleId: string; startDate: string; endDate: string;

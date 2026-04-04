@@ -78,10 +78,13 @@ async function getAuthToken(): Promise<string | null> {
   return null;
 }
 
-function mapPayoutStatusToPaymentStatus(s?: string): "paid" | "pending" | "unpaid" {
+function mapPayoutStatusToPaymentStatus(
+  s?: string,
+): "paid" | "pending" | "cancelled" | "unpaid" {
   switch ((s ?? "").toUpperCase()) {
     case "PAID": return "paid";
     case "PENDING": return "pending";
+    case "CANCELLED": return "cancelled";
     default: return "unpaid";
   }
 }
@@ -100,7 +103,7 @@ export type BackendDashboard = {
   promoCode: string;
   cycle: {
     start: string; end: string; index: number; number: number; label: string;
-    payout?: { id: string; status: "PAID"|"PENDING"|"UNPAID"; commission: number; patients: number; paidAt?: string; note?: string; } | null;
+    payout?: { id: string; status: "PAID"|"PENDING"|"CANCELLED"|"UNPAID"; commission: number; patients: number; paidAt?: string; note?: string; } | null;
   };
   patients: number;
   revenue: number;
@@ -139,7 +142,8 @@ export type BackendCycles = {
     status?: string;
     label?: string;
     start: string; end: string; patients: number; revenue: number; bonus: number; commission: number;
-    payout?: { id: string; status: "PAID"|"PENDING"|"UNPAID"; commission: number; patients: number; paidAt?: string; note?: string; } | null;
+    payout?: { id: string; status: "PAID"|"PENDING"|"CANCELLED"|"UNPAID"; commission: number; patients: number; paidAt?: string; note?: string; } | null;
+    isZeroEarningCycle?: boolean;
   }>;
 };
 
@@ -196,7 +200,7 @@ export async function fetchPartnerReferralsByCycle(workingCycleId: string, limit
   return res.data;
 }
 
-export type PaymentStatus = "paid" | "pending" | "unpaid";
+export type PaymentStatus = "paid" | "pending" | "cancelled" | "unpaid";
 
 export interface CycleHistoryItem {
   id: string; workingCycleId: string; startDate: string; endDate: string;
