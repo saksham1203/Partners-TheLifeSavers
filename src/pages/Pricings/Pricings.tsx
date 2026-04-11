@@ -53,7 +53,7 @@ const Pricing: React.FC = () => {
           
           {/* Labs */}
           <div className="flex justify-center gap-3 flex-wrap">
-            {["thyrocare", "healthians", "dr_mittal"].map((lab) => (
+            {["thyrocare", "healthians", "dr_mittal", "maxx_path_diagnostics"].map((lab) => (
               <button
                 key={lab}
                 onClick={() => setActiveLab(lab as LabType)}

@@ -5,7 +5,7 @@ const API_BASE = "https://services.thelifesavers.in/api/partner/pricing";
 
 /* ---------------- Types ---------------- */
 
-export type LabType = "thyrocare" | "healthians" | "dr_mittal";
+export type LabType = "thyrocare" | "healthians" | "dr_mittal" | "maxx_path_diagnostics";
 
 export interface PricingItem {
   name: string;
